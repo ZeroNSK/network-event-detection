@@ -8,6 +8,7 @@ const Events = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [apiMismatch, setApiMismatch] = useState(false)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({
@@ -38,8 +39,10 @@ const Events = () => {
       if (filters.max_risk_score) params.max_risk_score = filters.max_risk_score
       
       const response = await api.get('/events', { params })
-      setEvents(response.data.items)
+      const items = response.data.items || []
+      setEvents(items)
       setTotal(response.data.total)
+      setApiMismatch(items.length > 0 && items.some(event => event.risk_score === undefined))
     } catch (error) {
       console.error('Error fetching events:', error)
       toast.error('Ошибка загрузки событий')
@@ -83,6 +86,12 @@ const Events = () => {
           Создать событие
         </button>
       </div>
+
+      {apiMismatch && (
+        <div className="alert-box alert-error">
+          Backend вернул старый формат событий без risk_score. Пересоберите и перезапустите backend, иначе риски не будут отображаться.
+        </div>
+      )}
 
       <div className="filters">
         <select name="severity" value={filters.severity} onChange={handleFilterChange}>
@@ -178,11 +187,34 @@ const Events = () => {
                       {event.severity}
                     </span>
                   </td>
-                  <td>{event.risk_score}</td>
                   <td>
-                    <span className={`badge badge-${event.risk_level}`}>
-                      {event.risk_level}
-                    </span>
+                    {event.risk_score !== undefined ? (
+                      <div className="risk-cell">
+                        <div className="risk-cell-top">
+                          <strong>{event.risk_score}</strong>
+                          <span className={`badge badge-${event.risk_level}`}>
+                            {event.risk_level}
+                          </span>
+                        </div>
+                        <div className="risk-mini-track">
+                          <div
+                            className={`risk-mini-fill bar-${event.risk_level}`}
+                            style={{ width: `${Math.min(event.risk_score || 0, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="badge badge-secondary">нет данных</span>
+                    )}
+                  </td>
+                  <td>
+                    {event.risk_level ? (
+                      <span className={`badge badge-${event.risk_level}`}>
+                        {event.risk_level}
+                      </span>
+                    ) : (
+                      <span className="badge badge-secondary">старый API</span>
+                    )}
                   </td>
                   <td>
                     <span className={`badge ${event.is_suspicious ? 'badge-danger' : 'badge-success'}`}>

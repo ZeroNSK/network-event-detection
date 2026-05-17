@@ -764,6 +764,35 @@ table th {
   line-height: 1.35;
 }
 
+.risk-cell {
+  min-width: 140px;
+}
+
+.risk-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.risk-cell-top strong {
+  font-size: 20px;
+  color: #1f2937;
+}
+
+.risk-mini-track {
+  height: 7px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e9eef3;
+}
+
+.risk-mini-fill {
+  height: 100%;
+  min-width: 4px;
+}
+
 .mt-20 {
   margin-top: 20px;
 }
