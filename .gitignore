@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+
+.vscode/
+.idea/
+.kiro/
+
+*.log
+
+# Лишние артефакты из соседних работ
+scheme.py
+ges_lubrication_scheme.svg
+manual_touchups.py
+process_docx_images.py
+process_docx_lines.py
+scan_remaining.py
