@@ -1,9 +1,9 @@
 """
-Tests for incidents endpoints.
+Тесты endpoints инцидентов.
 Requirements: 16.6, 16.7, 16.8
 """
 import pytest
-from app.models import NetworkNode, NodeType, NodeStatus, NetworkEvent, EventType, Severity, Protocol
+from app.models import AccessLevel, IncidentAccess, NetworkNode, NodeType, NodeStatus, NetworkEvent, EventType, Severity, Protocol
 
 
 class FakeSMTP:
@@ -36,20 +36,20 @@ class FakeSMTP:
 
 @pytest.fixture
 def suspicious_event(db, admin_user):
-    """Create a suspicious network event for testing."""
-    # Create a node first
+    """Создает подозрительное сетевое событие для тестов."""
+    # Сначала создаем узел.
     node = NetworkNode(
         name="Test-Node",
         node_type=NodeType.router,
         ip_address="10.0.0.1",
-        location="Test Location",
+        location="Тестовая локация",
         status=NodeStatus.active
     )
     db.add(node)
     db.commit()
     db.refresh(node)
     
-    # Create a suspicious event
+    # Создаем подозрительное событие.
     event = NetworkEvent(
         node_id=node.id,
         rule_id=None,
@@ -70,15 +70,15 @@ def suspicious_event(db, admin_user):
 
 def test_create_incident_from_suspicious_event(client, admin_user, admin_token, suspicious_event):
     """
-    Test creating an incident from a suspicious event returns 201.
+    Проверяет, что создание инцидента из подозрительного события возвращает 201.
     Requirements: 16.8
     """
     response = client.post(
         "/api/incidents",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
-            "title": "Test Incident",
-            "description": "Test incident description",
+            "title": "Тестовый инцидент",
+            "description": "Описание тестового инцидента",
             "severity": "high",
             "event_id": suspicious_event.id,
             "assigned_to": admin_user.id
@@ -87,8 +87,8 @@ def test_create_incident_from_suspicious_event(client, admin_user, admin_token, 
     
     assert response.status_code == 201
     data = response.json()
-    assert data["title"] == "Test Incident"
-    assert data["description"] == "Test incident description"
+    assert data["title"] == "Тестовый инцидент"
+    assert data["description"] == "Описание тестового инцидента"
     assert data["severity"] == "high"
     assert data["event_id"] == suspicious_event.id
     assert data["status"] == "new"
@@ -102,7 +102,7 @@ def test_create_dangerous_incident_sends_email(
     suspicious_event,
     monkeypatch
 ):
-    """Test that creating a high-severity incident sends an SMTP notification."""
+    """Проверяет, что инцидент высокой критичности отправляет SMTP-уведомление."""
     FakeSMTP.instances = []
     FakeSMTP.messages = []
     monkeypatch.setenv("SMTP_HOST", "smtp.test.local")
@@ -117,8 +117,8 @@ def test_create_dangerous_incident_sends_email(
         "/api/incidents",
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
-            "title": "Dangerous Incident",
-            "description": "Requires immediate attention",
+            "title": "Опасный инцидент",
+            "description": "Требует немедленного внимания",
             "severity": "high",
             "event_id": suspicious_event.id,
             "assigned_to": admin_user.id
@@ -135,9 +135,9 @@ def test_create_dangerous_incident_sends_email(
     message = FakeSMTP.messages[0]
     assert message["From"] == "alerts@test.local"
     assert message["To"] == "security@test.local"
-    assert "Dangerous incident" in message["Subject"]
-    assert "Dangerous Incident" in message.get_content()
-    assert "Severity: high" in message.get_content()
+    assert "Опасный инцидент" in message["Subject"]
+    assert "Опасный инцидент" in message.get_content()
+    assert "Критичность: high" in message.get_content()
 
 
 def test_create_non_dangerous_incident_does_not_send_email(
@@ -147,7 +147,7 @@ def test_create_non_dangerous_incident_does_not_send_email(
     suspicious_event,
     monkeypatch
 ):
-    """Test that creating a medium-severity incident does not send an email."""
+    """Проверяет, что инцидент средней критичности не отправляет письмо."""
     FakeSMTP.instances = []
     FakeSMTP.messages = []
     monkeypatch.setenv("SMTP_HOST", "smtp.test.local")
@@ -160,7 +160,7 @@ def test_create_non_dangerous_incident_does_not_send_email(
         headers={"Authorization": f"Bearer {admin_token}"},
         json={
             "title": "Medium Incident",
-            "description": "No email expected",
+            "description": "Письмо не ожидается",
             "severity": "medium",
             "event_id": suspicious_event.id,
             "assigned_to": admin_user.id
@@ -174,7 +174,7 @@ def test_create_non_dangerous_incident_does_not_send_email(
 
 def test_operator_cannot_delete_event(client, operator_user, operator_token, suspicious_event):
     """
-    Test that an operator attempting to delete a network event returns 403.
+    Проверяет, что оператор получает 403 при попытке удалить сетевое событие.
     Requirements: 16.6
     """
     response = client.delete(
@@ -187,7 +187,7 @@ def test_operator_cannot_delete_event(client, operator_user, operator_token, sus
 
 def test_admin_can_delete_event(client, admin_user, admin_token, suspicious_event, db):
     """
-    Test that an admin can successfully delete a network event.
+    Проверяет, что администратор может удалить сетевое событие.
     Requirements: 16.7
     """
     event_id = suspicious_event.id
@@ -199,20 +199,20 @@ def test_admin_can_delete_event(client, admin_user, admin_token, suspicious_even
     
     assert response.status_code == 204
     
-    # Verify event is deleted
+    # Проверяем, что событие удалено.
     deleted_event = db.query(NetworkEvent).filter(NetworkEvent.id == event_id).first()
     assert deleted_event is None
 
 
 def test_operator_sees_only_own_incidents(client, operator_user, operator_token, admin_user, admin_token, suspicious_event, db):
     """
-    Test that an operator sees only their own incidents.
+    Проверяет, что оператор видит только свои инциденты.
     """
-    # Create incident as operator
+    # Создаем инцидент от имени оператора.
     from app.models import Incident, IncidentStatus
     operator_incident = Incident(
-        title="Operator Incident",
-        description="Created by operator",
+        title="Инцидент оператора",
+        description="Создан оператором",
         status=IncidentStatus.new,
         severity=Severity.high,
         event_id=suspicious_event.id,
@@ -220,10 +220,10 @@ def test_operator_sees_only_own_incidents(client, operator_user, operator_token,
     )
     db.add(operator_incident)
     
-    # Create incident as admin
+    # Создаем инцидент от имени администратора.
     admin_incident = Incident(
-        title="Admin Incident",
-        description="Created by admin",
+        title="Инцидент администратора",
+        description="Создан администратором",
         status=IncidentStatus.new,
         severity=Severity.high,
         event_id=suspicious_event.id,
@@ -232,7 +232,7 @@ def test_operator_sees_only_own_incidents(client, operator_user, operator_token,
     db.add(admin_incident)
     db.commit()
     
-    # Operator should see only their incident
+    # Оператор должен видеть только свой инцидент.
     response = client.get(
         "/api/incidents",
         headers={"Authorization": f"Bearer {operator_token}"}
@@ -241,9 +241,9 @@ def test_operator_sees_only_own_incidents(client, operator_user, operator_token,
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
-    assert data["items"][0]["title"] == "Operator Incident"
+    assert data["items"][0]["title"] == "Инцидент оператора"
     
-    # Admin should see all incidents
+    # Администратор должен видеть все инциденты.
     response = client.get(
         "/api/incidents",
         headers={"Authorization": f"Bearer {admin_token}"}
@@ -254,9 +254,45 @@ def test_operator_sees_only_own_incidents(client, operator_user, operator_token,
     assert data["total"] == 2
 
 
+def test_operator_sees_shared_incident(client, operator_user, operator_token, admin_user, suspicious_event, db):
+    """
+    Проверяет, что оператор видит инцидент после явной выдачи доступа.
+    """
+    from app.models import Incident, IncidentStatus
+
+    incident = Incident(
+        title="Инцидент с доступом",
+        description="Доступ выдан оператору",
+        status=IncidentStatus.new,
+        severity=Severity.high,
+        event_id=suspicious_event.id,
+        created_by=admin_user.id,
+    )
+    db.add(incident)
+    db.commit()
+    db.refresh(incident)
+    db.add(
+        IncidentAccess(
+            incident_id=incident.id,
+            user_id=operator_user.id,
+            access_level=AccessLevel.read,
+            granted_by=admin_user.id,
+        )
+    )
+    db.commit()
+
+    response = client.get(
+        f"/api/incidents/{incident.id}",
+        headers={"Authorization": f"Bearer {operator_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == incident.id
+
+
 def test_get_incident_returns_full_event_payload(client, admin_user, admin_token, suspicious_event, db):
     """
-    Test that getting a single incident returns a payload matching IncidentResponse.
+    Проверяет, что получение одного инцидента возвращает данные формата IncidentResponse.
     This guards against response validation errors on nested event fields.
     """
     from app.models import Incident, IncidentStatus

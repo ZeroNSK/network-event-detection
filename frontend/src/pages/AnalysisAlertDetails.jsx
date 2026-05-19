@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { eventTypeLabel, incidentStatusLabel, riskLevelLabel } from '../utils/labels'
 
 const AnalysisAlertDetails = () => {
   const navigate = useNavigate()
@@ -22,7 +23,7 @@ const AnalysisAlertDetails = () => {
       setStatusValue(response.data.status)
     } catch (error) {
       const status = error.response?.status || 500
-      const message = error.response?.data?.detail || 'Ошибка загрузки alert'
+      const message = error.response?.data?.detail || 'Ошибка загрузки оповещения'
       navigate(`/error?status=${status}&message=${encodeURIComponent(message)}`)
     } finally {
       setLoading(false)
@@ -33,20 +34,20 @@ const AnalysisAlertDetails = () => {
     try {
       const response = await api.put(`/analysis/alerts/${id}`, { status: statusValue })
       setAlert({ ...alert, status: response.data.status })
-      toast.success('Статус alert обновлен')
+      toast.success('Статус оповещения обновлен')
     } catch (error) {
-      toast.error('Ошибка обновления alert')
+      toast.error('Ошибка обновления оповещения')
     }
   }
 
   const deleteAlert = async () => {
-    if (!window.confirm('Удалить correlation alert?')) return
+    if (!window.confirm('Удалить корреляционное оповещение?')) return
     try {
       await api.delete(`/analysis/alerts/${id}`)
-      toast.success('Correlation alert удален')
+      toast.success('Корреляционное оповещение удалено')
       navigate('/analysis/alerts')
     } catch (error) {
-      toast.error('Ошибка удаления alert')
+      toast.error('Ошибка удаления оповещения')
     }
   }
 
@@ -71,7 +72,7 @@ const AnalysisAlertDetails = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Correlation alert #{alert.id}</h1>
+        <h1>Корреляционное оповещение #{alert.id}</h1>
         <div className="actions">
           <button className="btn btn-primary" onClick={createIncident}>
             Создать инцидент
@@ -97,20 +98,20 @@ const AnalysisAlertDetails = () => {
           <span className="detail-value">{alert.description}</span>
         </div>
         <div className="detail-row">
-          <span className="detail-label">Risk:</span>
+          <span className="detail-label">Балл риска:</span>
           <span className="detail-value">{alert.risk_score}</span>
         </div>
         <div className="detail-row">
-          <span className="detail-label">Risk level:</span>
-          <span className="detail-value"><span className={`badge badge-${alert.risk_level}`}>{alert.risk_level}</span></span>
+          <span className="detail-label">Уровень риска:</span>
+          <span className="detail-value"><span className={`badge badge-${alert.risk_level}`}>{riskLevelLabel(alert.risk_level)}</span></span>
         </div>
         <div className="detail-row">
-          <span className="detail-label">Source IP:</span>
-          <span className="detail-value">{alert.source_ip || 'N/A'}</span>
+          <span className="detail-label">IP источника:</span>
+          <span className="detail-value">{alert.source_ip || 'Нет данных'}</span>
         </div>
         <div className="detail-row">
           <span className="detail-label">Узел:</span>
-          <span className="detail-value">{alert.node ? `${alert.node.name} (${alert.node.ip_address})` : 'N/A'}</span>
+          <span className="detail-value">{alert.node ? `${alert.node.name} (${alert.node.ip_address})` : 'Нет данных'}</span>
         </div>
         <div className="detail-row">
           <span className="detail-label">Окно событий:</span>
@@ -122,10 +123,10 @@ const AnalysisAlertDetails = () => {
           <span className="detail-label">Статус:</span>
           <span className="detail-value inline-controls">
             <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
-              <option value="new">new</option>
-              <option value="in_progress">in_progress</option>
-              <option value="resolved">resolved</option>
-              <option value="false_positive">false_positive</option>
+              <option value="new">Новый</option>
+              <option value="in_progress">В работе</option>
+              <option value="resolved">Решен</option>
+              <option value="false_positive">Ложное срабатывание</option>
             </select>
             <button className="btn btn-sm btn-primary" onClick={updateStatus}>
               Сохранить
@@ -143,7 +144,7 @@ const AnalysisAlertDetails = () => {
               <th>Источник</th>
               <th>Назначение</th>
               <th>Тип</th>
-              <th>Risk</th>
+              <th>Балл риска</th>
               <th>Создано</th>
             </tr>
           </thead>
@@ -153,7 +154,7 @@ const AnalysisAlertDetails = () => {
                 <td>{event.id}</td>
                 <td>{event.source_ip}</td>
                 <td>{event.destination_ip}</td>
-                <td>{event.event_type}</td>
+                <td>{eventTypeLabel(event.event_type)}</td>
                 <td><span className={`badge badge-${event.risk_level}`}>{event.risk_score}</span></td>
                 <td>{new Date(event.created_at).toLocaleString('ru-RU')}</td>
               </tr>
@@ -163,7 +164,7 @@ const AnalysisAlertDetails = () => {
       </div>
 
       <div className="details-card mt-20">
-        <h2>Инциденты из alert</h2>
+        <h2>Инциденты из оповещения</h2>
         {alert.incidents?.length ? (
           <table className="compact-table">
             <tbody>
@@ -171,13 +172,13 @@ const AnalysisAlertDetails = () => {
                 <tr key={incident.id} className="clickable-row" onClick={() => navigate(`/incidents/${incident.id}`)}>
                   <td>{incident.id}</td>
                   <td>{incident.title}</td>
-                  <td><span className={`badge badge-${incident.status}`}>{incident.status}</span></td>
+                  <td><span className={`badge badge-${incident.status}`}>{incidentStatusLabel(incident.status)}</span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="muted">Инцидент из этого alert еще не создан.</p>
+          <p className="muted">Инцидент из этого оповещения еще не создан.</p>
         )}
       </div>
     </div>

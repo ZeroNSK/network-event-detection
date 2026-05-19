@@ -1,12 +1,29 @@
 import os
+import logging
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-change-in-production-12345")
+
+def _load_secret_key() -> str:
+    configured_secret = os.getenv("SECRET_KEY")
+    if configured_secret and configured_secret.strip():
+        return configured_secret
+
+    generated_secret = secrets.token_urlsafe(32)
+    logger.warning(
+        "SECRET_KEY is not set; generated an ephemeral JWT signing key for this process. "
+        "Set SECRET_KEY in deployment to keep sessions stable across restarts."
+    )
+    return generated_secret
+
+
+SECRET_KEY = _load_secret_key()
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 

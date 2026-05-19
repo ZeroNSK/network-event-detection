@@ -5,7 +5,7 @@ const ErrorPage = () => {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   
-  // Получаем информацию об ошибке из state или query params
+  // Получаем информацию об ошибке из состояния страницы или параметров запроса.
   const statusFromState = location.state?.error?.status
   const messageFromState = location.state?.error?.message
   

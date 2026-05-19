@@ -40,7 +40,7 @@ def _env_int(name: str, default: int) -> int:
     try:
         return int(value)
     except ValueError:
-        logger.warning("Invalid %s value %r, using %s", name, value, default)
+        logger.warning("Некорректное значение %s=%r, используется %s", name, value, default)
         return default
 
 
@@ -51,7 +51,7 @@ def _env_float(name: str, default: float) -> float:
     try:
         return float(value)
     except ValueError:
-        logger.warning("Invalid %s value %r, using %s", name, value, default)
+        logger.warning("Некорректное значение %s=%r, используется %s", name, value, default)
         return default
 
 
@@ -102,29 +102,29 @@ class SmtpSettings:
 def _build_incident_body(incident: object) -> str:
     event = getattr(incident, "event", None)
     lines = [
-        "Dangerous incident was created in the network monitoring system.",
+        "В системе мониторинга сети создан опасный инцидент.",
         "",
-        f"Incident ID: {getattr(incident, 'id', '-')}",
-        f"Title: {getattr(incident, 'title', '-')}",
-        f"Severity: {_severity_value(getattr(incident, 'severity', '-'))}",
-        f"Status: {_severity_value(getattr(incident, 'status', '-'))}",
-        f"Description: {getattr(incident, 'description', '-')}",
-        f"Created by user ID: {getattr(incident, 'created_by', '-')}",
-        f"Assigned to user ID: {getattr(incident, 'assigned_to', '-') or 'not assigned'}",
-        f"Created at: {getattr(incident, 'created_at', '-')}",
+        f"ID инцидента: {getattr(incident, 'id', '-')}",
+        f"Название: {getattr(incident, 'title', '-')}",
+        f"Критичность: {_severity_value(getattr(incident, 'severity', '-'))}",
+        f"Статус: {_severity_value(getattr(incident, 'status', '-'))}",
+        f"Описание: {getattr(incident, 'description', '-')}",
+        f"Создал пользователь ID: {getattr(incident, 'created_by', '-')}",
+        f"Назначен пользователю ID: {getattr(incident, 'assigned_to', '-') or 'не назначен'}",
+        f"Создан: {getattr(incident, 'created_at', '-')}",
     ]
 
     if event is not None:
         lines.extend(
             [
                 "",
-                "Related event:",
-                f"Event ID: {getattr(event, 'id', '-')}",
-                f"Event type: {_severity_value(getattr(event, 'event_type', '-'))}",
-                f"Source IP: {getattr(event, 'source_ip', '-')}",
-                f"Destination IP: {getattr(event, 'destination_ip', '-')}",
-                f"Protocol: {_severity_value(getattr(event, 'protocol', '-'))}",
-                f"Event message: {getattr(event, 'event_message', '-')}",
+                "Связанное событие:",
+                f"ID события: {getattr(event, 'id', '-')}",
+                f"Тип события: {_severity_value(getattr(event, 'event_type', '-'))}",
+                f"IP источника: {getattr(event, 'source_ip', '-')}",
+                f"IP назначения: {getattr(event, 'destination_ip', '-')}",
+                f"Протокол: {_severity_value(getattr(event, 'protocol', '-'))}",
+                f"Сообщение события: {getattr(event, 'event_message', '-')}",
             ]
         )
 
@@ -134,7 +134,7 @@ def _build_incident_body(incident: object) -> str:
 def _build_incident_message(incident: object, settings: SmtpSettings) -> EmailMessage:
     message = EmailMessage()
     message["Subject"] = (
-        f"[Network Security] Dangerous incident #{getattr(incident, 'id', '-')}: "
+        f"[Сетевая безопасность] Опасный инцидент #{getattr(incident, 'id', '-')}: "
         f"{getattr(incident, 'title', '-')}"
     )
     message["From"] = settings.sender
@@ -160,7 +160,7 @@ def notify_dangerous_incident_created(incident: object) -> bool:
 
     settings = SmtpSettings.from_env()
     if not settings.is_configured:
-        logger.info("Dangerous incident email skipped: SMTP is not configured")
+        logger.info("Письмо об опасном инциденте не отправлено: SMTP не настроен")
         return False
 
     message = _build_incident_message(incident, settings)
@@ -168,13 +168,13 @@ def notify_dangerous_incident_created(incident: object) -> bool:
         _send_message(message, settings)
     except Exception:
         logger.exception(
-            "Failed to send dangerous incident email for incident %s",
+            "Не удалось отправить письмо об опасном инциденте %s",
             getattr(incident, "id", "-"),
         )
         return False
 
     logger.info(
-        "Dangerous incident email sent for incident %s",
+        "Письмо об опасном инциденте отправлено для инцидента %s",
         getattr(incident, "id", "-"),
     )
     return True

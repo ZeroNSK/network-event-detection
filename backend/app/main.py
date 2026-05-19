@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 
@@ -12,26 +15,64 @@ from .schema_migrations import ensure_runtime_schema
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Lifespan context manager for startup and shutdown events.
+    Lifespan-контекст для действий при запуске и остановке приложения.
     """
-    # Startup: Create database tables and seed data
+    # При запуске создаем таблицы и загружаем демонстрационные данные.
     Base.metadata.create_all(bind=engine)
     ensure_runtime_schema()
     seed_database()
     yield
-    # Shutdown: cleanup if needed
+    # При остановке можно выполнить очистку ресурсов.
     pass
 
 
-# Create FastAPI application
+# Создаем приложение FastAPI.
 app = FastAPI(
-    title="Network Security Monitoring System",
+    title="Система мониторинга сетевой безопасности",
     description="REST API для системы обнаружения подозрительной активности в сети связи",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+
+def _message_from_detail(detail) -> str:
+    if isinstance(detail, dict):
+        message = detail.get("message")
+        return str(message) if message else "Ошибка запроса"
+    if isinstance(detail, list):
+        return "Ошибка валидации входных данных"
+    return str(detail)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    detail = exc.detail
+    return JSONResponse(
+        status_code=exc.status_code,
+        headers=exc.headers,
+        content={
+            "code": f"HTTP_{exc.status_code}",
+            "message": _message_from_detail(detail),
+            "details": detail,
+            "detail": detail,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = jsonable_encoder(exc.errors())
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "code": "VALIDATION_ERROR",
+            "message": "Ошибка валидации входных данных",
+            "details": errors,
+            "detail": errors,
+        },
+    )
 
 
 def get_cors_origins() -> list[str]:
@@ -53,7 +94,7 @@ LOCAL_NETWORK_ORIGIN_REGEX = (
 )
 
 
-# Configure CORS
+# Настраиваем CORS.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
@@ -63,7 +104,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Подключаем роутеры.
 app.include_router(auth.router, prefix="/api")
 app.include_router(nodes.router, prefix="/api")
 app.include_router(events.router, prefix="/api")
@@ -83,7 +124,7 @@ app.include_router(dataset.router, prefix="/api")
 async def root():
     """Root endpoint."""
     return {
-        "message": "Network Security Monitoring System API",
+        "message": "API системы мониторинга сетевой безопасности",
         "version": "1.0.0",
         "docs": "/docs"
     }

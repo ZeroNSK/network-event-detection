@@ -7,11 +7,11 @@ from ..models import RuleAccess, DetectionRule, User, AuditLog, AuditAction, Ent
 from ..schemas import RuleAccessCreate, RuleAccessUpdate, RuleAccessResponse
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/rules/{rule_id}/access", tags=["Rule Access"])
+router = APIRouter(prefix="/rules/{rule_id}/access", tags=["Доступ к правилам"])
 
 
 def check_rule_manage_access(rule_id: int, user_dict: dict, db: Session) -> bool:
-    """Check if user can manage access for a rule (admin or has manage level)"""
+    """Проверяет, может ли пользователь управлять доступом к правилу."""
     if user_dict["role"] == "admin":
         return True
     

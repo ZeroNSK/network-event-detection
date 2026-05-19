@@ -9,12 +9,12 @@ const ProtectedRoute = () => {
   }
   
   return (
-    <>
+    <div className="app-shell">
       <Navbar />
-      <div className="container">
+      <main className="app-main">
         <Outlet />
-      </div>
-    </>
+      </main>
+    </div>
   )
 }
 

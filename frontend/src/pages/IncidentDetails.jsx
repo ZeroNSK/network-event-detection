@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { eventTypeLabel, incidentStatusLabel, roleLabel, severityLabel } from '../utils/labels'
 
 const IncidentDetails = () => {
   const navigate = useNavigate()
@@ -45,7 +46,7 @@ const IncidentDetails = () => {
     try {
       const response = await api.get(`/incidents/${id}/access`)
       setAccessGrants(response.data)
-      // Check if current user has manage access
+      // Проверяем, есть ли у текущего пользователя право управлять доступом.
       const userAccess = response.data.find(a => a.user_id === user.id)
       if (userAccess && userAccess.access_level === 'manage') {
         setCanManageAccess(true)
@@ -186,10 +187,10 @@ const IncidentDetails = () => {
                   onChange={(e) => setNewStatus(e.target.value)}
                   className="form-control"
                 >
-                  <option value="new">New</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="new">Новый</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="resolved">Решен</option>
+                  <option value="rejected">Отклонен</option>
                 </select>
                 <button className="btn btn-sm btn-primary" onClick={handleStatusUpdate}>
                   Сохранить
@@ -201,7 +202,7 @@ const IncidentDetails = () => {
             ) : (
               <>
                 <span className={`badge badge-${incident.status}`}>
-                  {incident.status}
+                  {incidentStatusLabel(incident.status)}
                 </span>
                 {['admin', 'security_engineer'].includes(user.role) && (
                   <button 
@@ -221,7 +222,7 @@ const IncidentDetails = () => {
           <span className="detail-label">Уровень критичности:</span>
           <span className="detail-value">
             <span className={`badge badge-${incident.severity}`}>
-              {incident.severity}
+              {severityLabel(incident.severity)}
             </span>
           </span>
         </div>
@@ -231,16 +232,16 @@ const IncidentDetails = () => {
           <span className="detail-value">
             {incident.event ? (
               <div>
-                <div>Event #{incident.event.id}</div>
+                <div>Событие #{incident.event.id}</div>
                 <div style={{ fontSize: '0.9em', color: '#666' }}>
-                  {incident.event.event_type} - {incident.event.source_ip} → {incident.event.destination_ip}
+                  {eventTypeLabel(incident.event.event_type)} - {incident.event.source_ip} → {incident.event.destination_ip}
                 </div>
                 <div style={{ fontSize: '0.9em', color: '#666' }}>
                   {incident.event.event_message}
                 </div>
               </div>
             ) : (
-              `Event #${incident.event_id}`
+              `Событие #${incident.event_id}`
             )}
           </span>
         </div>
@@ -248,13 +249,13 @@ const IncidentDetails = () => {
         <div className="detail-row">
           <span className="detail-label">Назначен:</span>
           <span className="detail-value">
-            {incident.assigned_to ? `User #${incident.assigned_to}` : 'Не назначен'}
+            {incident.assigned_to ? `Пользователь #${incident.assigned_to}` : 'Не назначен'}
           </span>
         </div>
 
         <div className="detail-row">
           <span className="detail-label">Создал:</span>
-          <span className="detail-value">User #{incident.created_by}</span>
+          <span className="detail-value">Пользователь #{incident.created_by}</span>
         </div>
 
         <div className="detail-row">
@@ -272,7 +273,7 @@ const IncidentDetails = () => {
         </div>
       </div>
 
-      {/* Access Management Section */}
+      {/* Раздел управления доступом */}
       <div className="details-card" style={{ marginTop: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
           <h2>Управление доступом</h2>
@@ -299,7 +300,7 @@ const IncidentDetails = () => {
                 <option value="">Выберите пользователя</option>
                 {availableUsers.map(u => (
                   <option key={u.id} value={u.id}>
-                    {u.username} ({u.role})
+                    {u.username} ({roleLabel(u.role)})
                   </option>
                 ))}
               </select>
@@ -336,8 +337,8 @@ const IncidentDetails = () => {
           <tbody>
             {accessGrants.map(access => (
               <tr key={access.id}>
-                <td>{access.user?.username || `User #${access.user_id}`}</td>
-                <td>{access.user?.role || '-'}</td>
+                <td>{access.user?.username || `Пользователь #${access.user_id}`}</td>
+                <td>{access.user ? roleLabel(access.user.role) : '-'}</td>
                 <td>
                   {canManageAccess ? (
                     <select

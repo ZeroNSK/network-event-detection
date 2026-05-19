@@ -1,1 +1,1 @@
-# Network Security Monitoring System Backend
+# Серверная часть системы мониторинга сетевой безопасности

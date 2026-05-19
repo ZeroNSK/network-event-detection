@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { auditActionLabel, entityTypeLabel, roleLabel } from '../utils/labels'
 
 const Logs = () => {
   const [logs, setLogs] = useState([])
@@ -38,6 +39,8 @@ const Logs = () => {
         return 'badge-danger'
       case 'login':
         return 'badge-primary'
+      case 'failed_login':
+        return 'badge-danger'
       default:
         return 'badge-secondary'
     }
@@ -71,19 +74,19 @@ const Logs = () => {
                       <div>
                         <div>{log.user.username}</div>
                         <div style={{ fontSize: '0.85em', color: '#666' }}>
-                          {log.user.role}
+                          {roleLabel(log.user.role)}
                         </div>
                       </div>
                     ) : (
-                      `User #${log.user_id}`
+                      log.user_id ? `Пользователь #${log.user_id}` : 'Неизвестный пользователь'
                     )}
                   </td>
                   <td>
                     <span className={`badge ${getActionBadgeClass(log.action)}`}>
-                      {log.action}
+                      {auditActionLabel(log.action)}
                     </span>
                   </td>
-                  <td>{log.entity_type || '-'}</td>
+                  <td>{entityTypeLabel(log.entity_type)}</td>
                   <td>{log.entity_id || '-'}</td>
                   <td>{new Date(log.created_at).toLocaleString('ru-RU')}</td>
                 </tr>

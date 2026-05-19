@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { eventTypeLabel, ruleCategoryLabel, ruleNameLabel, severityLabel } from '../utils/labels'
 
 const Rules = () => {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ const Rules = () => {
     setLoading(true)
     try {
       const params = { page, limit, ...filters }
-      // Remove empty filters
+      // Убираем пустые фильтры перед запросом.
       Object.keys(params).forEach(key => {
         if (params[key] === '') delete params[key]
       })
@@ -80,14 +81,14 @@ const Rules = () => {
       <div className="filters">
         <select name="event_type" value={filters.event_type} onChange={handleFilterChange}>
           <option value="">Все типы</option>
-          <option value="auth_failed">Auth Failed</option>
-          <option value="port_scan">Port Scan</option>
-          <option value="traffic_spike">Traffic Spike</option>
-          <option value="unauthorized_access">Unauthorized Access</option>
-          <option value="config_change">Config Change</option>
-          <option value="connection_drop">Connection Drop</option>
-          <option value="suspicious_ip">Suspicious IP</option>
-          <option value="other">Other</option>
+          <option value="auth_failed">Ошибка аутентификации</option>
+          <option value="port_scan">Сканирование портов</option>
+          <option value="traffic_spike">Всплеск трафика</option>
+          <option value="unauthorized_access">Несанкционированный доступ</option>
+          <option value="config_change">Изменение конфигурации</option>
+          <option value="connection_drop">Потеря соединения</option>
+          <option value="suspicious_ip">Подозрительный IP</option>
+          <option value="other">Другое событие</option>
         </select>
 
         <select name="is_active" value={filters.is_active} onChange={handleFilterChange}>
@@ -121,17 +122,17 @@ const Rules = () => {
               {rules.map(rule => (
                 <tr key={rule.id}>
                   <td>{rule.id}</td>
-                  <td>{rule.name}</td>
-                  <td>{rule.event_type}</td>
+                  <td>{ruleNameLabel(rule.name)}</td>
+                  <td>{eventTypeLabel(rule.event_type)}</td>
                   <td>
                     <span className={`badge badge-${rule.severity_threshold}`}>
-                      {rule.severity_threshold}
+                      {severityLabel(rule.severity_threshold)}
                     </span>
                   </td>
                   <td>{rule.risk_weight}</td>
                   <td>{rule.time_window_minutes} мин.</td>
                   <td>{rule.threshold_count}</td>
-                  <td>{rule.rule_category}</td>
+                  <td>{ruleCategoryLabel(rule.rule_category)}</td>
                   <td>
                     <span className={`badge ${rule.is_active ? 'badge-success' : 'badge-secondary'}`}>
                       {rule.is_active ? 'Активно' : 'Неактивно'}

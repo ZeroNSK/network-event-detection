@@ -20,7 +20,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if user_id is None or role is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing user_id or role"
+                detail="Недействительный токен: отсутствует user_id или роль"
             )
         
         return {"user_id": user_id, "role": role}
@@ -28,7 +28,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail="Недействительный токен"
         )
 
 
@@ -39,7 +39,7 @@ def require_role(allowed_roles: List[str]):
         if current_user["role"] not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions"
+                detail="Недостаточно прав"
             )
         return current_user
     

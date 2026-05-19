@@ -25,6 +25,7 @@ def _upgrade_postgres_enums() -> None:
         return
 
     audit_actions = [
+        "failed_login",
         "run_analysis",
         "create_alert",
         "update_alert",
@@ -43,6 +44,8 @@ def _upgrade_postgres_enums() -> None:
 def _upgrade_postgres_constraints() -> None:
     if engine.dialect.name != "postgresql":
         return
+
+    _execute("ALTER TABLE audit_logs ALTER COLUMN user_id DROP NOT NULL")
 
     _execute(
         """
@@ -66,6 +69,38 @@ def _upgrade_postgres_constraints() -> None:
 def ensure_runtime_schema() -> None:
     """Small startup schema upgrade for projects without Alembic migrations."""
     _upgrade_postgres_enums()
+
+    _add_column_if_missing(
+        "users",
+        "is_active",
+        "is_active BOOLEAN NOT NULL DEFAULT TRUE",
+    )
+
+    # Создаём таблицу login_attempt_logs если её нет
+    _execute(
+        """
+        CREATE TABLE IF NOT EXISTS login_attempt_logs (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(100) NOT NULL,
+            ip_address VARCHAR(45) NOT NULL,
+            user_agent VARCHAR(500),
+            reason VARCHAR(100) NOT NULL,
+            attempt_number INTEGER NOT NULL DEFAULT 1,
+            locked_until TIMESTAMP NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    # Индексы для быстрого поиска
+    _execute(
+        "CREATE INDEX IF NOT EXISTS ix_login_attempt_logs_username ON login_attempt_logs (username)"
+    )
+    _execute(
+        "CREATE INDEX IF NOT EXISTS ix_login_attempt_logs_ip_address ON login_attempt_logs (ip_address)"
+    )
+    _execute(
+        "CREATE INDEX IF NOT EXISTS ix_login_attempt_logs_created_at ON login_attempt_logs (created_at)"
+    )
 
     _add_column_if_missing(
         "network_events",

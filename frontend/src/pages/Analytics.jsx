@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { eventTypeLabel, riskLevelLabel } from '../utils/labels'
 
 const emptySummary = {
   total_events: 0,
@@ -45,7 +46,7 @@ const Analytics = () => {
     } catch (error) {
       setSummary(emptySummary)
       setTimeline([])
-      setLoadError('Backend не вернул данные аналитики. Проверьте, что backend пересобран и содержит endpoints /api/analytics.')
+      setLoadError('Серверная часть не вернула данные аналитики. Проверьте, что она пересобрана и содержит маршруты /api/analytics.')
       toast.error('Ошибка загрузки аналитики')
     } finally {
       setLoading(false)
@@ -63,7 +64,11 @@ const Analytics = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Аналитика</h1>
+        <div>
+          <p className="page-kicker">Risk intelligence</p>
+          <h1>Аналитика</h1>
+          <p className="page-description">Тренды, источники и распределение риска для оперативной оценки состояния сети.</p>
+        </div>
       </div>
 
       {loadError && (
@@ -75,10 +80,10 @@ const Analytics = () => {
       <div className="stats-grid">
         <div className="stat-card"><div className="stat-content"><h3>Всего событий</h3><p className="stat-value">{summary.total_events}</p></div></div>
         <div className="stat-card stat-warning"><div className="stat-content"><h3>Подозрительные</h3><p className="stat-value">{summary.suspicious_events}</p></div></div>
-        <div className="stat-card stat-info"><div className="stat-content"><h3>Средний risk_score</h3><p className="stat-value">{summary.average_risk_score}</p></div></div>
-        <div className="stat-card stat-danger"><div className="stat-content"><h3>Critical alerts</h3><p className="stat-value">{summary.critical_alerts}</p></div></div>
+        <div className="stat-card stat-info"><div className="stat-content"><h3>Средний балл риска</h3><p className="stat-value">{summary.average_risk_score}</p></div></div>
+        <div className="stat-card stat-danger"><div className="stat-content"><h3>Критические оповещения</h3><p className="stat-value">{summary.critical_alerts}</p></div></div>
         <div className="stat-card"><div className="stat-content"><h3>События за 24 часа</h3><p className="stat-value">{summary.events_last_24h}</p></div></div>
-        <div className="stat-card"><div className="stat-content"><h3>Alerts за 24 часа</h3><p className="stat-value">{summary.alerts_last_24h}</p></div></div>
+        <div className="stat-card"><div className="stat-content"><h3>Оповещения за 24 часа</h3><p className="stat-value">{summary.alerts_last_24h}</p></div></div>
       </div>
 
       <div className="dashboard-grid">
@@ -86,7 +91,7 @@ const Analytics = () => {
           <h2>Распределение риска</h2>
           {['low', 'medium', 'high', 'critical'].map(level => (
             <div className="bar-row" key={level}>
-              <span className={`badge badge-${level}`}>{level}</span>
+              <span className={`badge badge-${level}`}>{riskLevelLabel(level)}</span>
               <div className="bar-track">
                 <div className={`bar-fill bar-${level}`} style={{ width: `${((riskDistribution[level] || 0) / maxRisk) * 100}%` }} />
               </div>
@@ -100,13 +105,17 @@ const Analytics = () => {
           <table className="compact-table">
             <thead><tr><th>IP</th><th>События</th><th>Средний риск</th></tr></thead>
             <tbody>
-              {summary.top_source_ips.map(item => (
-                <tr key={item.source_ip}>
-                  <td>{item.source_ip}</td>
-                  <td>{item.events_count}</td>
-                  <td>{item.average_risk_score}</td>
-                </tr>
-              ))}
+              {summary.top_source_ips.length ? (
+                summary.top_source_ips.map(item => (
+                  <tr key={item.source_ip}>
+                    <td className="mono-cell">{item.source_ip}</td>
+                    <td>{item.events_count}</td>
+                    <td>{item.average_risk_score}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="3" className="empty-table-cell">Нет событий для ранжирования источников.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -116,12 +125,16 @@ const Analytics = () => {
           <table className="compact-table">
             <thead><tr><th>Тип</th><th>Количество</th></tr></thead>
             <tbody>
-              {summary.top_event_types.map(item => (
-                <tr key={item.event_type}>
-                  <td>{item.event_type}</td>
-                  <td>{item.count}</td>
-                </tr>
-              ))}
+              {summary.top_event_types.length ? (
+                summary.top_event_types.map(item => (
+                  <tr key={item.event_type}>
+                    <td>{eventTypeLabel(item.event_type)}</td>
+                    <td>{item.count}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="2" className="empty-table-cell">Типы событий появятся после регистрации трафика.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -131,31 +144,52 @@ const Analytics = () => {
           <table className="compact-table">
             <thead><tr><th>Узел</th><th>События</th></tr></thead>
             <tbody>
-              {summary.top_nodes_by_events.map(item => (
-                <tr key={item.node_id}>
-                  <td>{item.node_name}</td>
-                  <td>{item.events_count}</td>
-                </tr>
-              ))}
+              {summary.top_nodes_by_events.length ? (
+                summary.top_nodes_by_events.map(item => (
+                  <tr key={item.node_id}>
+                    <td>{item.node_name}</td>
+                    <td>{item.events_count}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr><td colSpan="2" className="empty-table-cell">Узлы появятся после привязки событий к инфраструктуре.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
       <div className="panel mt-20">
-        <h2>Динамика событий по времени</h2>
-        <div className="timeline-chart">
-          {timeline.map(item => (
-            <div className="timeline-column" key={item.period} title={item.period}>
-              <div className="timeline-bars">
-                <span className="timeline-bar events" style={{ height: `${(item.events_count / maxTimeline) * 120}px` }} />
-                <span className="timeline-bar suspicious" style={{ height: `${(item.suspicious_count / maxTimeline) * 120}px` }} />
-                <span className="timeline-bar alerts" style={{ height: `${(item.alerts_count / maxTimeline) * 120}px` }} />
-              </div>
-              <small>{item.period.slice(11)}</small>
-            </div>
-          ))}
+        <div className="panel-header">
+          <div>
+            <h2>Динамика событий по времени</h2>
+            <p>Сравнение общего потока, подозрительных событий и корреляционных оповещений.</p>
+          </div>
+          <div className="chart-legend">
+            <span><i className="legend-events" /> события</span>
+            <span><i className="legend-suspicious" /> подозрительные</span>
+            <span><i className="legend-alerts" /> оповещения</span>
+          </div>
         </div>
+        {timeline.length ? (
+          <div className="timeline-chart">
+            {timeline.map(item => (
+              <div className="timeline-column" key={item.period} title={item.period}>
+                <div className="timeline-bars">
+                  <span className="timeline-bar events" style={{ height: `${(item.events_count / maxTimeline) * 120}px` }} />
+                  <span className="timeline-bar suspicious" style={{ height: `${(item.suspicious_count / maxTimeline) * 120}px` }} />
+                  <span className="timeline-bar alerts" style={{ height: `${(item.alerts_count / maxTimeline) * 120}px` }} />
+                </div>
+                <small>{item.period.slice(11)}</small>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">
+            <h2>Нет данных временной шкалы</h2>
+            <p>После появления событий здесь будет видна динамика активности и всплески риска.</p>
+          </div>
+        )}
       </div>
     </div>
   )

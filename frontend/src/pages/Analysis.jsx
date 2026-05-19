@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { riskLevelLabel } from '../utils/labels'
 
 const Analysis = () => {
   const navigate = useNavigate()
@@ -21,7 +22,7 @@ const Analysis = () => {
       setSummary(response.data)
       setLoadError('')
     } catch (error) {
-      setLoadError('Backend не вернул данные аналитики. Скорее всего, frontend подключен к старому API без /api/analytics.')
+      setLoadError('Серверная часть не вернула данные аналитики. Скорее всего, клиентская часть подключена к старому API без /api/analytics.')
       toast.error('Ошибка загрузки аналитики')
     } finally {
       setLoading(false)
@@ -55,7 +56,7 @@ const Analysis = () => {
             {running ? 'Анализ выполняется...' : 'Запустить анализ'}
           </button>
           <button className="btn btn-secondary" onClick={() => navigate('/analysis/alerts')}>
-            Correlation alerts
+            Корреляционные оповещения
           </button>
         </div>
       </div>
@@ -69,7 +70,7 @@ const Analysis = () => {
       <div className="stats-grid">
         <div className="stat-card stat-info">
           <div className="stat-content">
-            <h3>Средний risk_score</h3>
+            <h3>Средний балл риска</h3>
             <p className="stat-value">{summary?.average_risk_score || 0}</p>
           </div>
         </div>
@@ -81,7 +82,7 @@ const Analysis = () => {
         </div>
         <div className="stat-card stat-danger">
           <div className="stat-content">
-            <h3>Critical alerts</h3>
+            <h3>Критические оповещения</h3>
             <p className="stat-value">{summary?.critical_alerts || 0}</p>
           </div>
         </div>
@@ -92,21 +93,21 @@ const Analysis = () => {
           <h2>Результат запуска</h2>
           <div className="summary-line">
             <span>Проанализировано событий: <strong>{runResult.analyzed_events}</strong></span>
-            <span>Создано alert: <strong>{runResult.alerts_created}</strong></span>
-            <span>Обновлено alert: <strong>{runResult.alerts_updated}</strong></span>
+            <span>Создано оповещений: <strong>{runResult.alerts_created}</strong></span>
+            <span>Обновлено оповещений: <strong>{runResult.alerts_updated}</strong></span>
           </div>
         </div>
       )}
 
       <div className="dashboard-grid">
         <div className="panel">
-          <h2>Распределение risk_level</h2>
+          <h2>Распределение уровней риска</h2>
           {['low', 'medium', 'high', 'critical'].map(level => {
             const value = summary?.risk_distribution?.[level] || 0
             const max = Math.max(...Object.values(summary?.risk_distribution || { low: 1 }), 1)
             return (
               <div className="bar-row" key={level}>
-                <span className={`badge badge-${level}`}>{level}</span>
+                <span className={`badge badge-${level}`}>{riskLevelLabel(level)}</span>
                 <div className="bar-track">
                   <div className={`bar-fill bar-${level}`} style={{ width: `${(value / max) * 100}%` }} />
                 </div>

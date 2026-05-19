@@ -7,7 +7,7 @@ import enum
 from .database import Base
 
 
-# Enums
+# Перечисления
 class UserRole(str, enum.Enum):
     admin = "admin"
     security_engineer = "security_engineer"
@@ -99,6 +99,7 @@ class AuditAction(str, enum.Enum):
     update = "update"
     delete = "delete"
     login = "login"
+    failed_login = "failed_login"
     grant_access = "grant_access"
     update_access = "update_access"
     revoke_access = "revoke_access"
@@ -119,7 +120,7 @@ class EntityType(str, enum.Enum):
     correlation_alerts = "correlation_alerts"
 
 
-# Models
+# Модели
 class User(Base):
     __tablename__ = "users"
 
@@ -128,9 +129,10 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     role = Column(SQLEnum(UserRole), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     created_events = relationship("NetworkEvent", back_populates="creator", foreign_keys="NetworkEvent.created_by")
     created_incidents = relationship("Incident", back_populates="creator", foreign_keys="Incident.created_by")
     assigned_incidents = relationship("Incident", back_populates="assignee", foreign_keys="Incident.assigned_to")
@@ -148,7 +150,7 @@ class NetworkNode(Base):
     status = Column(SQLEnum(NodeStatus), default=NodeStatus.active)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     events = relationship("NetworkEvent", back_populates="node")
 
 
@@ -167,7 +169,7 @@ class DetectionRule(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     events = relationship("NetworkEvent", back_populates="rule")
 
 
@@ -192,7 +194,7 @@ class NetworkEvent(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     node = relationship("NetworkNode", back_populates="events")
     rule = relationship("DetectionRule", back_populates="events")
     creator = relationship("User", back_populates="created_events", foreign_keys=[created_by])
@@ -259,7 +261,7 @@ class Incident(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
+    # Связи
     event = relationship("NetworkEvent", back_populates="incidents")
     correlation_alert = relationship("CorrelationAlert", back_populates="incidents")
     assignee = relationship("User", back_populates="assigned_incidents", foreign_keys=[assigned_to])
@@ -277,7 +279,7 @@ class IncidentAccess(Base):
     granted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     incident = relationship("Incident", back_populates="access_grants")
     user = relationship("User", foreign_keys=[user_id])
     granter = relationship("User", foreign_keys=[granted_by])
@@ -293,7 +295,7 @@ class EventAccess(Base):
     granted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     event = relationship("NetworkEvent", foreign_keys=[event_id])
     user = relationship("User", foreign_keys=[user_id])
     granter = relationship("User", foreign_keys=[granted_by])
@@ -309,7 +311,7 @@ class NodeAccess(Base):
     granted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     node = relationship("NetworkNode", foreign_keys=[node_id])
     user = relationship("User", foreign_keys=[user_id])
     granter = relationship("User", foreign_keys=[granted_by])
@@ -325,7 +327,7 @@ class RuleAccess(Base):
     granted_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     rule = relationship("DetectionRule", foreign_keys=[rule_id])
     user = relationship("User", foreign_keys=[user_id])
     granter = relationship("User", foreign_keys=[granted_by])
@@ -335,25 +337,39 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     action = Column(SQLEnum(AuditAction), nullable=False)
     entity_type = Column(SQLEnum(EntityType), nullable=True)
     entity_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relationships
+    # Связи
     user = relationship("User", back_populates="audit_logs")
 
 
-# Helper function for suspicious event detection
+class LoginAttemptLog(Base):
+    """Детальный журнал каждой неудачной попытки входа."""
+    __tablename__ = "login_attempt_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), nullable=False, index=True)   # введённый логин
+    ip_address = Column(String(45), nullable=False, index=True)  # IP источника
+    user_agent = Column(String(500), nullable=True)              # браузер / curl / etc.
+    reason = Column(String(100), nullable=False)                 # "invalid_credentials" | "account_locked"
+    attempt_number = Column(Integer, nullable=False, default=1)  # номер попытки в текущей серии
+    locked_until = Column(DateTime, nullable=True)               # когда снимется блок (если заблокирован)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# Вспомогательная функция для определения подозрительности события.
 def is_event_suspicious(severity: Severity, event_type: EventType) -> bool:
     """
-    Determine if an event is suspicious based on severity and event type.
+    Определяет подозрительность события по критичности и типу.
     
-    Returns True if ANY of the following conditions are met:
-    - severity is 'high' or 'critical'
-    - event_type is one of: 'auth_failed', 'port_scan', 'traffic_spike', 
-      'unauthorized_access', 'suspicious_ip'
+    Возвращает True, если выполнено хотя бы одно условие:
+    - критичность равна high или critical
+    - тип события входит в auth_failed, port_scan, traffic_spike,
+      unauthorized_access или suspicious_ip
     """
     suspicious_severities = [Severity.high, Severity.critical]
     suspicious_event_types = [

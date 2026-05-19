@@ -7,7 +7,7 @@ from ..models import NetworkNode, AuditLog, AuditAction, EntityType
 from ..schemas import NetworkNodeCreate, NetworkNodeUpdate, NetworkNodeResponse, PaginatedResponse
 from ..dependencies import get_current_user, require_role
 
-router = APIRouter(prefix="/nodes", tags=["Network Nodes"])
+router = APIRouter(prefix="/nodes", tags=["Сетевые узлы"])
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -48,13 +48,13 @@ async def get_node(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get a single network node by ID."""
+    """Возвращает один сетевой узел по ID."""
     node = db.query(NetworkNode).filter(NetworkNode.id == node_id).first()
     
     if not node:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network node not found"
+            detail="Сетевой узел не найден"
         )
     
     return node
@@ -98,7 +98,7 @@ async def update_node(
     if not node:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network node not found"
+            detail="Сетевой узел не найден"
         )
     
     update_data = node_data.model_dump(exclude_unset=True)
@@ -131,7 +131,7 @@ async def delete_node(
     if not node:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network node not found"
+            detail="Сетевой узел не найден"
         )
 
     audit_log = AuditLog(

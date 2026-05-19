@@ -173,7 +173,22 @@ Seed-данные моделируют сеть связи:
 
 Swagger доступен по адресу `http://localhost:8000/docs`.
 
+## Документация РГР
+
+- `docs/technical_specification.md` - техническое задание по структуре РГР;
+- `docs/interface_mockup.md` - макет и структура экранов;
+- `docs/user_scenarios.md` - пользовательские сценарии по ролям;
+- `docs/api_access_matrix.md` - API, методы и роли доступа;
+- `docs/backup_and_maintenance.md` - backup, восстановление и сопровождение;
+- `docs/test_results.md` - результаты функционального и ИБ-тестирования.
+
 ## Запуск через Docker
+
+Перед запуском задайте секрет JWT в корневом `.env` или в переменной окружения:
+
+```bash
+printf "SECRET_KEY=%s\n" "$(openssl rand -hex 32)" > .env
+```
 
 ```bash
 docker compose up --build
@@ -231,4 +246,5 @@ npm install
 npm run build
 ```
 
-Проверено: backend tests проходят, frontend production build собирается.
+Проверено: backend tests проходят (`52 passed`), frontend production build собирается.
+Дополнительно проверено: `npm audit --audit-level=moderate` возвращает `0 vulnerabilities`, Python dependency audit не находит уязвимостей в зависимостях приложения.

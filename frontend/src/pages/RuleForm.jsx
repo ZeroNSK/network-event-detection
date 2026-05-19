@@ -111,14 +111,14 @@ const RuleForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="auth_failed">Auth Failed</option>
-            <option value="port_scan">Port Scan</option>
-            <option value="traffic_spike">Traffic Spike</option>
-            <option value="unauthorized_access">Unauthorized Access</option>
-            <option value="config_change">Config Change</option>
-            <option value="connection_drop">Connection Drop</option>
-            <option value="suspicious_ip">Suspicious IP</option>
-            <option value="other">Other</option>
+            <option value="auth_failed">Ошибка аутентификации</option>
+            <option value="port_scan">Сканирование портов</option>
+            <option value="traffic_spike">Всплеск трафика</option>
+            <option value="unauthorized_access">Несанкционированный доступ</option>
+            <option value="config_change">Изменение конфигурации</option>
+            <option value="connection_drop">Потеря соединения</option>
+            <option value="suspicious_ip">Подозрительный IP</option>
+            <option value="other">Другое событие</option>
           </select>
         </div>
 
@@ -131,10 +131,10 @@ const RuleForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="critical">Критический</option>
           </select>
         </div>
 
@@ -187,12 +187,12 @@ const RuleForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="authentication">authentication</option>
-            <option value="network_scan">network_scan</option>
-            <option value="traffic_anomaly">traffic_anomaly</option>
-            <option value="unauthorized_access">unauthorized_access</option>
-            <option value="availability">availability</option>
-            <option value="configuration">configuration</option>
+            <option value="authentication">Аутентификация</option>
+            <option value="network_scan">Сканирование сети</option>
+            <option value="traffic_anomaly">Аномалии трафика</option>
+            <option value="unauthorized_access">Несанкционированный доступ</option>
+            <option value="availability">Доступность</option>
+            <option value="configuration">Конфигурация</option>
           </select>
         </div>
 

@@ -25,6 +25,7 @@ from .auth import hash_password
 
 
 def _ensure_user(db: Session, user_data: dict) -> User:
+    is_active = user_data.get("is_active", True)
     user = db.query(User).filter(User.username == user_data["username"]).first()
     if user:
         changed = False
@@ -33,6 +34,9 @@ def _ensure_user(db: Session, user_data: dict) -> User:
             changed = True
         if user.role != user_data["role"]:
             user.role = user_data["role"]
+            changed = True
+        if user.is_active != is_active:
+            user.is_active = is_active
             changed = True
         if changed:
             db.flush()
@@ -43,6 +47,7 @@ def _ensure_user(db: Session, user_data: dict) -> User:
         email=user_data["email"],
         hashed_password=hash_password(user_data["password"]),
         role=user_data["role"],
+        is_active=is_active,
     )
     db.add(user)
     db.flush()
@@ -64,14 +69,17 @@ def _ensure_node(db: Session, node_data: dict) -> NetworkNode:
 
 
 def _ensure_rule(db: Session, rule_data: dict) -> DetectionRule:
-    rule = db.query(DetectionRule).filter(DetectionRule.name == rule_data["name"]).first()
+    aliases = rule_data.get("aliases", [])
+    rule_names = [rule_data["name"], *aliases]
+    rule_payload = {key: value for key, value in rule_data.items() if key != "aliases"}
+    rule = db.query(DetectionRule).filter(DetectionRule.name.in_(rule_names)).first()
     if not rule:
-        rule = DetectionRule(**rule_data)
+        rule = DetectionRule(**rule_payload)
         db.add(rule)
         db.flush()
         return rule
 
-    for field, value in rule_data.items():
+    for field, value in rule_payload.items():
         setattr(rule, field, value)
     db.flush()
     return rule
@@ -136,11 +144,11 @@ def _ensure_incident_access(db: Session, access_data: dict) -> IncidentAccess:
 
 
 def seed_database():
-    """Populate the database with realistic telecom-oriented demo data."""
+    """Заполняет базу реалистичными демонстрационными данными сети связи."""
     db = SessionLocal()
 
     try:
-        print("Ensuring telecom demo data...")
+        print("Проверка демонстрационных данных сети связи...")
 
         users_data = [
             {
@@ -182,7 +190,7 @@ def seed_database():
         ]
         users = {user["username"]: _ensure_user(db, user) for user in users_data}
         db.commit()
-        print(f"Users available: {db.query(User).count()}")
+        print(f"Пользователей доступно: {db.query(User).count()}")
 
         nodes_data = [
             {
@@ -203,7 +211,7 @@ def seed_database():
                 "name": "IMS-SBC-01",
                 "node_type": NodeType.server,
                 "ip_address": "10.10.3.30",
-                "location": "Москва, VoIP edge cluster",
+                "location": "Москва, пограничный VoIP-кластер",
                 "status": NodeStatus.warning,
             },
             {
@@ -224,7 +232,7 @@ def seed_database():
                 "name": "CORE-RTR-02",
                 "node_type": NodeType.router,
                 "ip_address": "10.10.0.2",
-                "location": "Москва, магистральный IP/MPLS core",
+                "location": "Москва, магистральное ядро IP/MPLS",
                 "status": NodeStatus.active,
             },
             {
@@ -238,14 +246,14 @@ def seed_database():
                 "name": "AUTH-RADIUS-01",
                 "node_type": NodeType.server,
                 "ip_address": "10.10.5.5",
-                "location": "Москва, AAA сервисы",
+                "location": "Москва, AAA-сервисы",
                 "status": NodeStatus.active,
             },
             {
                 "name": "DNS-REC-01",
                 "node_type": NodeType.server,
                 "ip_address": "10.10.6.53",
-                "location": "Новосибирск, DNS recursive farm",
+                "location": "Новосибирск, ферма рекурсивных DNS-серверов",
                 "status": NodeStatus.active,
             },
             {
@@ -266,14 +274,14 @@ def seed_database():
                 "name": "CGNAT-GW-01",
                 "node_type": NodeType.gateway,
                 "ip_address": "10.10.8.1",
-                "location": "Новосибирск, CGNAT gateway",
+                "location": "Новосибирск, CGNAT-шлюз",
                 "status": NodeStatus.warning,
             },
             {
                 "name": "DHCP-SRV-01",
                 "node_type": NodeType.server,
                 "ip_address": "10.10.9.67",
-                "location": "Москва, DHCP/lease сервисы",
+                "location": "Москва, сервисы DHCP-аренды",
                 "status": NodeStatus.active,
             },
             {
@@ -293,11 +301,12 @@ def seed_database():
         ]
         nodes = {node["name"]: _ensure_node(db, node) for node in nodes_data}
         db.commit()
-        print(f"Network nodes available: {db.query(NetworkNode).count()}")
+        print(f"Сетевых узлов доступно: {db.query(NetworkNode).count()}")
 
         rules_data = [
             {
-                "name": "RADIUS Authentication Failure Burst",
+                "name": "Серия ошибок RADIUS-аутентификации",
+                "aliases": ["RADIUS Authentication Failure Burst"],
                 "description": "Выявляет серию неуспешных RADIUS-аутентификаций абонентских сессий с одного источника.",
                 "event_type": EventType.auth_failed,
                 "severity_threshold": Severity.high,
@@ -308,7 +317,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "Edge Router Port Scan Sweep",
+                "name": "Сканирование портов пограничного маршрутизатора",
+                "aliases": ["Edge Router Port Scan Sweep"],
                 "description": "Фиксирует последовательное обращение к нескольким TCP-портам пограничного маршрутизатора.",
                 "event_type": EventType.port_scan,
                 "severity_threshold": Severity.high,
@@ -319,7 +329,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "SIP Flood Traffic Spike",
+                "name": "Всплеск SIP-трафика",
+                "aliases": ["SIP Flood Traffic Spike"],
                 "description": "Выявляет резкий рост UDP/SIP-трафика на SBC и VoIP-сервисах.",
                 "event_type": EventType.traffic_spike,
                 "severity_threshold": Severity.critical,
@@ -330,7 +341,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "Unauthorized BSC Configuration Change",
+                "name": "Несанкционированное изменение конфигурации BSC",
+                "aliases": ["Unauthorized BSC Configuration Change"],
                 "description": "Контролирует попытки изменения конфигурации контроллеров базовых станций без подтвержденной админ-сессии.",
                 "event_type": EventType.config_change,
                 "severity_threshold": Severity.critical,
@@ -341,7 +353,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "Base Station Link Loss",
+                "name": "Потеря связи с базовой станцией",
+                "aliases": ["Base Station Link Loss"],
                 "description": "Определяет потерю связи с базовой станцией дольше 5 минут.",
                 "event_type": EventType.connection_drop,
                 "severity_threshold": Severity.medium,
@@ -352,7 +365,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "Untrusted NMS Access Attempt",
+                "name": "Доступ к NMS из недоверенной сети",
+                "aliases": ["Untrusted NMS Access Attempt"],
                 "description": "Обнаруживает подключения к NMS из недоверенных административных подсетей.",
                 "event_type": EventType.unauthorized_access,
                 "severity_threshold": Severity.high,
@@ -363,7 +377,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "DNS IOC Query Detection",
+                "name": "DNS-запросы к IOC-индикаторам",
+                "aliases": ["DNS IOC Query Detection"],
                 "description": "Ищет запросы к доменам, связанным с известными индикаторами компрометации.",
                 "event_type": EventType.suspicious_ip,
                 "severity_threshold": Severity.high,
@@ -374,7 +389,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "EPC Gateway Abnormal Flow Profile",
+                "name": "Аномальный профиль трафика EPC-шлюза",
+                "aliases": ["EPC Gateway Abnormal Flow Profile"],
                 "description": "Сигнализирует о нестандартном профиле соединений на шлюзе пакетного ядра.",
                 "event_type": EventType.other,
                 "severity_threshold": Severity.critical,
@@ -385,7 +401,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "PPPoE Session Failure Storm",
+                "name": "Массовые отказы PPPoE-сессий",
+                "aliases": ["PPPoE Session Failure Storm"],
                 "description": "Выявляет всплеск отказов PPPoE-сессий на BRAS и AAA-инфраструктуре.",
                 "event_type": EventType.auth_failed,
                 "severity_threshold": Severity.medium,
@@ -396,8 +413,9 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "Critical Node External IOC Access",
-                "description": "Повышает риск при обращении подозрительных внешних IP к NMS, firewall, gateway или серверным узлам.",
+                "name": "Внешний IOC-доступ к критическому узлу",
+                "aliases": ["Critical Node External IOC Access"],
+                "description": "Повышает риск при обращении подозрительных внешних IP к NMS, межсетевому экрану, шлюзу или серверным узлам.",
                 "event_type": EventType.suspicious_ip,
                 "severity_threshold": Severity.high,
                 "risk_weight": 20,
@@ -407,8 +425,9 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "CGNAT Flow Exhaustion",
-                "description": "Фиксирует аномальный рост числа трансляций и короткоживущих TCP-сессий на CGNAT gateway.",
+                "name": "Истощение таблицы соединений CGNAT",
+                "aliases": ["CGNAT Flow Exhaustion"],
+                "description": "Фиксирует аномальный рост числа трансляций и короткоживущих TCP-сессий на CGNAT-шлюзе.",
                 "event_type": EventType.traffic_spike,
                 "severity_threshold": Severity.high,
                 "risk_weight": 15,
@@ -418,7 +437,8 @@ def seed_database():
                 "is_active": True,
             },
             {
-                "name": "DHCP Lease Abuse Pattern",
+                "name": "Подозрительные DHCP-запросы аренды",
+                "aliases": ["DHCP Lease Abuse Pattern"],
                 "description": "Выявляет подозрительные запросы аренды адресов и попытки истощения DHCP-пула.",
                 "event_type": EventType.suspicious_ip,
                 "severity_threshold": Severity.medium,
@@ -431,12 +451,12 @@ def seed_database():
         ]
         rules = {rule["name"]: _ensure_rule(db, rule) for rule in rules_data}
         db.commit()
-        print(f"Detection rules available: {db.query(DetectionRule).count()}")
+        print(f"Правил обнаружения доступно: {db.query(DetectionRule).count()}")
 
         events_data = [
             {
                 "node_id": nodes["AUTH-RADIUS-01"].id,
-                "rule_id": rules["RADIUS Authentication Failure Burst"].id,
+                "rule_id": rules["Серия ошибок RADIUS-аутентификации"].id,
                 "source_ip": "185.71.66.14",
                 "destination_ip": "10.10.5.5",
                 "protocol": Protocol.UDP,
@@ -447,7 +467,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["CORE-RTR-02"].id,
-                "rule_id": rules["Edge Router Port Scan Sweep"].id,
+                "rule_id": rules["Сканирование портов пограничного маршрутизатора"].id,
                 "source_ip": "203.0.113.77",
                 "destination_ip": "10.10.0.2",
                 "protocol": Protocol.TCP,
@@ -458,29 +478,29 @@ def seed_database():
             },
             {
                 "node_id": nodes["IMS-SBC-01"].id,
-                "rule_id": rules["SIP Flood Traffic Spike"].id,
+                "rule_id": rules["Всплеск SIP-трафика"].id,
                 "source_ip": "198.51.100.23",
                 "destination_ip": "10.10.3.30",
                 "protocol": Protocol.UDP,
                 "event_type": EventType.traffic_spike,
-                "event_message": "На IMS-SBC-01 зафиксирован резкий рост UDP-трафика на SIP-порт 5060, похожий на SIP flood.",
+                "event_message": "На IMS-SBC-01 зафиксирован резкий рост UDP-трафика на SIP-порт 5060, похожий на SIP-флуд.",
                 "severity": Severity.critical,
                 "created_by": users["voip_ops"].id,
             },
             {
                 "node_id": nodes["BSC-CTRL-07"].id,
-                "rule_id": rules["Unauthorized BSC Configuration Change"].id,
+                "rule_id": rules["Несанкционированное изменение конфигурации BSC"].id,
                 "source_ip": "172.16.7.250",
                 "destination_ip": "172.16.7.17",
                 "protocol": Protocol.SSH,
                 "event_type": EventType.config_change,
-                "event_message": "Попытка изменения конфигурации BSC-CTRL-07 без подтвержденной административной сессии из management-сети.",
+                "event_message": "Попытка изменения конфигурации BSC-CTRL-07 без подтвержденной административной сессии из сети управления.",
                 "severity": Severity.critical,
                 "created_by": users["soc_lead"].id,
             },
             {
                 "node_id": nodes["LTE-eNB-2217"].id,
-                "rule_id": rules["Base Station Link Loss"].id,
+                "rule_id": rules["Потеря связи с базовой станцией"].id,
                 "source_ip": "10.10.22.17",
                 "destination_ip": "10.10.0.2",
                 "protocol": Protocol.ICMP,
@@ -491,7 +511,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["NMS-SRV-01"].id,
-                "rule_id": rules["Untrusted NMS Access Attempt"].id,
+                "rule_id": rules["Доступ к NMS из недоверенной сети"].id,
                 "source_ip": "185.19.204.55",
                 "destination_ip": "172.16.10.10",
                 "protocol": Protocol.HTTPS,
@@ -502,7 +522,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["BRAS-MSK-01"].id,
-                "rule_id": rules["RADIUS Authentication Failure Burst"].id,
+                "rule_id": rules["Серия ошибок RADIUS-аутентификации"].id,
                 "source_ip": "10.10.100.44",
                 "destination_ip": "10.10.1.10",
                 "protocol": Protocol.TCP,
@@ -513,7 +533,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["DNS-REC-01"].id,
-                "rule_id": rules["DNS IOC Query Detection"].id,
+                "rule_id": rules["DNS-запросы к IOC-индикаторам"].id,
                 "source_ip": "192.168.44.19",
                 "destination_ip": "10.10.6.53",
                 "protocol": Protocol.UDP,
@@ -524,7 +544,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["EDGE-FW-01"].id,
-                "rule_id": rules["Untrusted NMS Access Attempt"].id,
+                "rule_id": rules["Доступ к NMS из недоверенной сети"].id,
                 "source_ip": "198.51.100.88",
                 "destination_ip": "172.16.0.1",
                 "protocol": Protocol.HTTPS,
@@ -535,7 +555,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["EPC-GW-NSK-01"].id,
-                "rule_id": rules["EPC Gateway Abnormal Flow Profile"].id,
+                "rule_id": rules["Аномальный профиль трафика EPC-шлюза"].id,
                 "source_ip": "10.10.200.14",
                 "destination_ip": "10.10.2.20",
                 "protocol": Protocol.GTP if hasattr(Protocol, "GTP") else Protocol.OTHER,
@@ -546,7 +566,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["AUTH-RADIUS-01"].id,
-                "rule_id": rules["RADIUS Authentication Failure Burst"].id,
+                "rule_id": rules["Серия ошибок RADIUS-аутентификации"].id,
                 "source_ip": "203.0.113.91",
                 "destination_ip": "10.10.5.5",
                 "protocol": Protocol.UDP,
@@ -557,7 +577,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["IMS-SBC-01"].id,
-                "rule_id": rules["SIP Flood Traffic Spike"].id,
+                "rule_id": rules["Всплеск SIP-трафика"].id,
                 "source_ip": "185.203.116.9",
                 "destination_ip": "10.10.3.30",
                 "protocol": Protocol.UDP,
@@ -568,18 +588,18 @@ def seed_database():
             },
             {
                 "node_id": nodes["NMS-SRV-01"].id,
-                "rule_id": rules["Untrusted NMS Access Attempt"].id,
+                "rule_id": rules["Доступ к NMS из недоверенной сети"].id,
                 "source_ip": "172.16.99.40",
                 "destination_ip": "172.16.10.10",
                 "protocol": Protocol.SSH,
                 "event_type": EventType.unauthorized_access,
-                "event_message": "Попытка SSH-подключения к NMS-SRV-01 из management-сегмента 172.16.99.40, не включенного в список доверенных хостов.",
+                "event_message": "Попытка SSH-подключения к NMS-SRV-01 из сегмента управления 172.16.99.40, не включенного в список доверенных хостов.",
                 "severity": Severity.medium,
                 "created_by": users["soc_lead"].id,
             },
             {
                 "node_id": nodes["CORE-RTR-02"].id,
-                "rule_id": rules["Edge Router Port Scan Sweep"].id,
+                "rule_id": rules["Сканирование портов пограничного маршрутизатора"].id,
                 "source_ip": "185.244.39.120",
                 "destination_ip": "10.10.0.2",
                 "protocol": Protocol.TCP,
@@ -590,7 +610,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["DNS-REC-01"].id,
-                "rule_id": rules["DNS IOC Query Detection"].id,
+                "rule_id": rules["DNS-запросы к IOC-индикаторам"].id,
                 "source_ip": "10.10.55.24",
                 "destination_ip": "10.10.6.53",
                 "protocol": Protocol.UDP,
@@ -601,7 +621,7 @@ def seed_database():
             },
             {
                 "node_id": nodes["BRAS-MSK-01"].id,
-                "rule_id": rules["RADIUS Authentication Failure Burst"].id,
+                "rule_id": rules["Серия ошибок RADIUS-аутентификации"].id,
                 "source_ip": "192.168.10.201",
                 "destination_ip": "10.10.1.10",
                 "protocol": Protocol.TCP,
@@ -645,12 +665,12 @@ def seed_database():
             add_event(
                 minutes=index,
                 node_name="AUTH-RADIUS-01",
-                rule_name="RADIUS Authentication Failure Burst",
+                rule_name="Серия ошибок RADIUS-аутентификации",
                 source_ip="203.0.113.91",
                 destination_ip="10.10.5.5",
                 protocol=Protocol.UDP,
                 event_type=EventType.auth_failed,
-                event_message=f"RADIUS Access-Reject #{index + 1}: отказ PPPoE-аутентификации абонентской сессии с внешнего источника 203.0.113.91.",
+                event_message=f"Отказ RADIUS Access-Reject №{index + 1}: отказ PPPoE-аутентификации абонентской сессии с внешнего источника 203.0.113.91.",
                 severity=Severity.high,
                 created_by="engineer",
             )
@@ -659,12 +679,12 @@ def seed_database():
             add_event(
                 minutes=12 + index,
                 node_name="BRAS-MSK-01",
-                rule_name="PPPoE Session Failure Storm",
+                rule_name="Массовые отказы PPPoE-сессий",
                 source_ip="198.51.100.45",
                 destination_ip="10.10.1.10",
                 protocol=Protocol.TCP,
                 event_type=EventType.auth_failed,
-                event_message=f"PPPoE failure #{index + 1}: BRAS-MSK-01 отклонил сессию после некорректных учетных данных абонента.",
+                event_message=f"Отказ PPPoE №{index + 1}: BRAS-MSK-01 отклонил сессию после некорректных учетных данных абонента.",
                 severity=Severity.medium,
                 created_by="noc_shift",
             )
@@ -673,7 +693,7 @@ def seed_database():
             add_event(
                 minutes=30 + index,
                 node_name="EDGE-FW-01",
-                rule_name="Edge Router Port Scan Sweep",
+                rule_name="Сканирование портов пограничного маршрутизатора",
                 source_ip="198.51.100.77",
                 destination_ip=destination,
                 protocol=Protocol.TCP,
@@ -687,7 +707,7 @@ def seed_database():
             add_event(
                 minutes=42 + index,
                 node_name="CORE-RTR-02",
-                rule_name="Edge Router Port Scan Sweep",
+                rule_name="Сканирование портов пограничного маршрутизатора",
                 source_ip="185.66.77.88",
                 destination_ip="10.10.0.2",
                 protocol=Protocol.TCP,
@@ -698,17 +718,17 @@ def seed_database():
             )
 
         traffic_spike_cases = [
-            ("EPC-GW-NSK-01", "10.10.200.14", "Рост GTP-C сигнализации на EPC gateway выше базового профиля."),
-            ("EDGE-FW-01", "185.203.116.9", "Резкий рост HTTPS-сессий к административной зоне firewall."),
-            ("CORE-RTR-02", "10.10.70.11", "Аномальный burst TCP-флоу на магистральном маршрутизаторе."),
+            ("EPC-GW-NSK-01", "10.10.200.14", "Рост GTP-C сигнализации на EPC-шлюзе выше базового профиля."),
+            ("EDGE-FW-01", "185.203.116.9", "Резкий рост HTTPS-сессий к административной зоне межсетевого экрана."),
+            ("CORE-RTR-02", "10.10.70.11", "Аномальный всплеск TCP-потоков на магистральном маршрутизаторе."),
             ("EPC-GW-NSK-01", "198.51.100.200", "Нестандартный всплеск входящих соединений к шлюзу пакетного ядра."),
-            ("EDGE-FW-01", "203.0.113.120", "Кратковременная перегрузка таблицы состояний firewall внешним источником."),
+            ("EDGE-FW-01", "203.0.113.120", "Кратковременная перегрузка таблицы состояний межсетевого экрана внешним источником."),
         ]
         for index, (node_name, source_ip, message) in enumerate(traffic_spike_cases):
             add_event(
                 minutes=55 + index,
                 node_name=node_name,
-                rule_name="SIP Flood Traffic Spike",
+                rule_name="Всплеск SIP-трафика",
                 source_ip=source_ip,
                 destination_ip=nodes[node_name].ip_address,
                 protocol=Protocol.UDP if index == 0 else Protocol.TCP,
@@ -720,8 +740,8 @@ def seed_database():
 
         suspicious_access_cases = [
             ("NMS-SRV-01", "185.19.204.55", "Попытка доступа к NMS API с внешнего IP, отсутствующего в доверенных подсетях."),
-            ("EDGE-FW-01", "203.0.113.120", "Внешний источник пробует получить доступ к консоли управления firewall."),
-            ("EPC-GW-NSK-01", "198.51.100.200", "Подозрительный внешний IP обращается к сервисному интерфейсу EPC gateway."),
+            ("EDGE-FW-01", "203.0.113.120", "Внешний источник пробует получить доступ к консоли управления межсетевым экраном."),
+            ("EPC-GW-NSK-01", "198.51.100.200", "Подозрительный внешний IP обращается к сервисному интерфейсу EPC-шлюзе."),
             ("NMS-SRV-01", "185.71.66.14", "Повторный запрос к административной панели NMS с адреса из внешнего диапазона."),
             ("IMS-SBC-01", "203.0.113.144", "Сигнализационный SIP-запрос от источника из списка подозрительных адресов."),
             ("DNS-REC-01", "198.51.100.88", "DNS-рекурсор получил запросы от внешнего источника с IOC-признаками."),
@@ -730,7 +750,7 @@ def seed_database():
             add_event(
                 minutes=70 + index,
                 node_name=node_name,
-                rule_name="Critical Node External IOC Access" if index >= 4 else "Untrusted NMS Access Attempt",
+                rule_name="Внешний IOC-доступ к критическому узлу" if index >= 4 else "Доступ к NMS из недоверенной сети",
                 source_ip=source_ip,
                 destination_ip=nodes[node_name].ip_address,
                 protocol=Protocol.HTTPS if index < 4 else Protocol.UDP,
@@ -741,12 +761,12 @@ def seed_database():
             )
 
         additional_operational_cases = [
-            ("DNS-REC-01", "10.10.55.24", "DNS IOC Query Detection", Protocol.UDP, EventType.suspicious_ip, "Внутренний узел повторно запрашивает домены из списка IOC.", Severity.medium),
-            ("LTE-eNB-2217", "10.10.22.17", "Base Station Link Loss", Protocol.ICMP, EventType.connection_drop, "LTE eNB потеряла транспортную связность после перепада питания на площадке.", Severity.medium),
-            ("BSC-CTRL-07", "172.16.7.250", "Unauthorized BSC Configuration Change", Protocol.SSH, EventType.config_change, "Планировщик конфигураций BSC получил изменение без заявки на работы.", Severity.critical),
-            ("IMS-SBC-01", "185.203.116.9", "SIP Flood Traffic Spike", Protocol.UDP, EventType.traffic_spike, "Повторный пик SIP REGISTER на SBC после короткого затишья.", Severity.critical),
-            ("BRAS-MSK-01", "192.168.10.201", "PPPoE Session Failure Storm", Protocol.TCP, EventType.auth_failed, "Абонентский концентратор генерирует серию PPPoE ошибок после смены профиля.", Severity.medium),
-            ("AUTH-RADIUS-01", "185.71.66.14", "RADIUS Authentication Failure Burst", Protocol.UDP, EventType.auth_failed, "Новая пачка Access-Request с некорректными учетными данными из внешнего диапазона.", Severity.high),
+            ("DNS-REC-01", "10.10.55.24", "DNS-запросы к IOC-индикаторам", Protocol.UDP, EventType.suspicious_ip, "Внутренний узел повторно запрашивает домены из списка IOC.", Severity.medium),
+            ("LTE-eNB-2217", "10.10.22.17", "Потеря связи с базовой станцией", Protocol.ICMP, EventType.connection_drop, "LTE eNB потеряла транспортную связность после перепада питания на площадке.", Severity.medium),
+            ("BSC-CTRL-07", "172.16.7.250", "Несанкционированное изменение конфигурации BSC", Protocol.SSH, EventType.config_change, "Планировщик конфигураций BSC получил изменение без заявки на работы.", Severity.critical),
+            ("IMS-SBC-01", "185.203.116.9", "Всплеск SIP-трафика", Protocol.UDP, EventType.traffic_spike, "Повторный пик SIP REGISTER на SBC после короткого затишья.", Severity.critical),
+            ("BRAS-MSK-01", "192.168.10.201", "Массовые отказы PPPoE-сессий", Protocol.TCP, EventType.auth_failed, "Абонентский концентратор генерирует серию PPPoE ошибок после смены профиля.", Severity.medium),
+            ("AUTH-RADIUS-01", "185.71.66.14", "Серия ошибок RADIUS-аутентификации", Protocol.UDP, EventType.auth_failed, "Новая пачка Access-Request с некорректными учетными данными из внешнего диапазона.", Severity.high),
         ]
         for index, (node_name, source_ip, rule_name, protocol, event_type, message, severity) in enumerate(additional_operational_cases):
             add_event(
@@ -768,12 +788,12 @@ def seed_database():
                 add_event(
                     minutes=110 + batch * 8 + index,
                     node_name="AUTH-RADIUS-01",
-                    rule_name="RADIUS Authentication Failure Burst",
+                    rule_name="Серия ошибок RADIUS-аутентификации",
                     source_ip=source_ip,
                     destination_ip="10.10.5.5",
                     protocol=Protocol.UDP,
                     event_type=EventType.auth_failed,
-                    event_message=f"Массовая ошибка RADIUS #{index + 1}: источник {source_ip} генерирует Access-Reject для абонентских PPPoE-сессий.",
+                    event_message=f"Массовая ошибка RADIUS №{index + 1}: источник {source_ip} генерирует Access-Reject для абонентских PPPoE-сессий.",
                     severity=Severity.high if index >= 3 else Severity.medium,
                     created_by="engineer",
                 )
@@ -785,12 +805,12 @@ def seed_database():
                 add_event(
                     minutes=150 + batch * 6 + index,
                     node_name=target_node,
-                    rule_name="Edge Router Port Scan Sweep",
+                    rule_name="Сканирование портов пограничного маршрутизатора",
                     source_ip=source_ip,
                     destination_ip=f"172.16.{batch}.{20 + index}",
                     protocol=Protocol.TCP,
                     event_type=EventType.port_scan,
-                    event_message=f"Сканирование адресного пространства: {source_ip} проверяет служебные порты на destination #{index + 1}.",
+                    event_message=f"Сканирование адресного пространства: {source_ip} проверяет служебные порты на назначение №{index + 1}.",
                     severity=Severity.high,
                     created_by="operator",
                 )
@@ -801,7 +821,7 @@ def seed_database():
             add_event(
                 minutes=190 + index,
                 node_name=node_name,
-                rule_name="CGNAT Flow Exhaustion" if node_name == "CGNAT-GW-01" else "SIP Flood Traffic Spike",
+                rule_name="Истощение таблицы соединений CGNAT" if node_name == "CGNAT-GW-01" else "Всплеск SIP-трафика",
                 source_ip=f"203.0.113.{130 + index}",
                 destination_ip=nodes[node_name].ip_address,
                 protocol=Protocol.TCP if index % 2 else Protocol.UDP,
@@ -815,9 +835,9 @@ def seed_database():
         for index in range(18):
             node_name = access_nodes[index % len(access_nodes)]
             event_type = EventType.unauthorized_access if index % 2 == 0 else EventType.suspicious_ip
-            rule_name = "Untrusted NMS Access Attempt" if event_type == EventType.unauthorized_access else "Critical Node External IOC Access"
+            rule_name = "Доступ к NMS из недоверенной сети" if event_type == EventType.unauthorized_access else "Внешний IOC-доступ к критическому узлу"
             if node_name == "DHCP-SRV-01":
-                rule_name = "DHCP Lease Abuse Pattern"
+                rule_name = "Подозрительные DHCP-запросы аренды"
                 event_type = EventType.suspicious_ip
             add_event(
                 minutes=220 + index,
@@ -841,7 +861,7 @@ def seed_database():
             add_event(
                 minutes=250 + index,
                 node_name=node_name,
-                rule_name="Base Station Link Loss",
+                rule_name="Потеря связи с базовой станцией",
                 source_ip=source_ip,
                 destination_ip="10.10.0.2",
                 protocol=Protocol.ICMP,
@@ -855,8 +875,8 @@ def seed_database():
         db.commit()
         run_full_analysis(db)
         db.commit()
-        print(f"Network events available: {db.query(NetworkEvent).count()}")
-        print(f"Correlation alerts available: {db.query(CorrelationAlert).count()}")
+        print(f"Сетевых событий доступно: {db.query(NetworkEvent).count()}")
+        print(f"Корреляционных оповещений доступно: {db.query(CorrelationAlert).count()}")
 
         incidents_data = [
             {
@@ -869,7 +889,7 @@ def seed_database():
                 "created_by": users["operator"].id,
             },
             {
-                "title": "Подозрение на SIP flood на IMS-SBC-01",
+                "title": "Подозрение на SIP-флуд на IMS-SBC-01",
                 "description": "На пограничном SBC обнаружен резкий рост UDP-пакетов, направленных на SIP-порт. Нагрузка превышает обычный уровень и может указывать на попытку отказа в обслуживании VoIP-сервисов.",
                 "status": IncidentStatus.in_progress,
                 "severity": Severity.critical,
@@ -968,7 +988,7 @@ def seed_database():
                 "created_by": users["operator"].id,
             },
             {
-                "title": "Внешний доступ к сервисному интерфейсу EPC gateway",
+                "title": "Внешний доступ к сервисному интерфейсу EPC-шлюза",
                 "description": "Критический шлюз пакетного ядра получил обращение с внешнего IP-адреса с признаками недоверенного доступа.",
                 "status": IncidentStatus.new,
                 "severity": Severity.critical,
@@ -1016,9 +1036,9 @@ def seed_database():
             risk_severity = Severity[event.risk_level] if event.risk_level in Severity.__members__ else event.severity
             incidents_data.append(
                 {
-                    "title": f"Корреляционная проверка #{index}: подозрительная активность на {node_name}",
+                    "title": f"Корреляционная проверка №{index}: подозрительная активность на {node_name}",
                     "description": (
-                        f"Событие от источника {source_ip} получило risk_score={event.risk_score}. "
+                        f"Событие от источника {source_ip} получило балл риска {event.risk_score}. "
                         f"Причина: {event.detection_reason}"
                     ),
                     "status": incident_status,
@@ -1031,7 +1051,7 @@ def seed_database():
 
         incidents = [_ensure_incident(db, incident) for incident in incidents_data]
         db.commit()
-        print(f"Incidents available: {db.query(Incident).count()}")
+        print(f"Инцидентов доступно: {db.query(Incident).count()}")
 
         access_items = []
         for incident in incidents:
@@ -1080,11 +1100,11 @@ def seed_database():
             _ensure_incident_access(db, access_data)
 
         db.commit()
-        print(f"Incident access grants available: {db.query(IncidentAccess).count()}")
-        print("Telecom demo data is ready.")
+        print(f"Выданных доступов к инцидентам: {db.query(IncidentAccess).count()}")
+        print("Демонстрационные данные сети связи готовы.")
 
     except Exception as e:
-        print(f"Error seeding database: {e}")
+        print(f"Ошибка заполнения базы данных: {e}")
         db.rollback()
     finally:
         db.close()

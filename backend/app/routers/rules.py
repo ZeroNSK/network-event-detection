@@ -7,7 +7,7 @@ from ..models import DetectionRule, AuditLog, AuditAction, EntityType
 from ..schemas import DetectionRuleCreate, DetectionRuleUpdate, DetectionRuleResponse, PaginatedResponse
 from ..dependencies import get_current_user, require_role
 
-router = APIRouter(prefix="/rules", tags=["Detection Rules"])
+router = APIRouter(prefix="/rules", tags=["Правила обнаружения"])
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -20,7 +20,7 @@ async def get_rules(
     db: Session = Depends(get_db)
 ):
     """
-    Get paginated list of detection rules with optional filters.
+    Возвращает список правил обнаружения с пагинацией и дополнительными фильтрами.
     
     - **page**: Page number (default: 1)
     - **limit**: Items per page (default: 10, max: 100)
@@ -29,20 +29,20 @@ async def get_rules(
     """
     query = db.query(DetectionRule)
     
-    # Apply filters
+    # Применяем фильтры.
     if event_type:
         query = query.filter(DetectionRule.event_type == event_type)
     if is_active is not None:
         query = query.filter(DetectionRule.is_active == is_active)
     
-    # Get total count
+    # Получаем общее количество.
     total = query.count()
     
-    # Apply pagination
+    # Применяем пагинацию.
     offset = (page - 1) * limit
     rules = query.offset(offset).limit(limit).all()
     
-    # Convert to response models
+    # Преобразуем данные в модели ответа.
     items = [DetectionRuleResponse.model_validate(rule) for rule in rules]
     
     return {
@@ -64,7 +64,7 @@ async def get_rule(
     if not rule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Detection rule not found"
+            detail="Правило обнаружения не найдено"
         )
     
     return rule
@@ -77,7 +77,7 @@ async def create_rule(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new detection rule (admin only).
+    Создает новое правило обнаружения; доступно только администратору.
     
     - **name**: Rule name
     - **description**: Rule description (optional)
@@ -91,7 +91,7 @@ async def create_rule(
     db.commit()
     db.refresh(new_rule)
     
-    # Create audit log
+    # Создаем запись аудита.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.create,
@@ -117,10 +117,10 @@ async def update_rule(
     if not rule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Detection rule not found"
+            detail="Правило обнаружения не найдено"
         )
     
-    # Update fields
+    # Обновляем поля.
     update_data = rule_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(rule, field, value)
@@ -128,7 +128,7 @@ async def update_rule(
     db.commit()
     db.refresh(rule)
     
-    # Create audit log
+    # Создаем запись аудита.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.update,
@@ -153,10 +153,10 @@ async def delete_rule(
     if not rule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Detection rule not found"
+            detail="Правило обнаружения не найдено"
         )
     
-    # Create audit log before deletion
+    # Создаем запись аудита перед удалением.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.delete,

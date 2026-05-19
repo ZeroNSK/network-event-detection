@@ -22,7 +22,7 @@ from ..models import (
 )
 from ..dependencies import get_current_user, require_role
 
-router = APIRouter(prefix="/dataset", tags=["Dataset"])
+router = APIRouter(prefix="/dataset", tags=["Набор данных"])
 
 CSV_EVENT_FIELDS = [
     "timestamp",
@@ -218,7 +218,7 @@ async def sample_dataset(
             "destination_ip": "172.16.0.1",
             "protocol": "TCP",
             "event_type": "port_scan",
-            "event_message": "Последовательные SYN-запросы к административным портам firewall.",
+            "event_message": "Последовательные SYN-запросы к административным портам межсетевого экрана.",
             "severity": "high",
         },
     ]

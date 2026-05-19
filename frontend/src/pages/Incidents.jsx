@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { incidentStatusLabel, severityLabel } from '../utils/labels'
 
 const Incidents = () => {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ const Incidents = () => {
     setLoading(true)
     try {
       const params = { page, limit, ...filters }
-      // Remove empty filters
+      // Убираем пустые фильтры перед запросом.
       Object.keys(params).forEach(key => {
         if (params[key] === '') delete params[key]
       })
@@ -78,18 +79,18 @@ const Incidents = () => {
       <div className="filters">
         <select name="status" value={filters.status} onChange={handleFilterChange}>
           <option value="">Все статусы</option>
-          <option value="new">New</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="rejected">Rejected</option>
+          <option value="new">Новый</option>
+          <option value="in_progress">В работе</option>
+          <option value="resolved">Решен</option>
+          <option value="rejected">Отклонен</option>
         </select>
 
         <select name="severity" value={filters.severity} onChange={handleFilterChange}>
           <option value="">Все уровни</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
+          <option value="low">Низкий</option>
+          <option value="medium">Средний</option>
+          <option value="high">Высокий</option>
+          <option value="critical">Критический</option>
         </select>
       </div>
 
@@ -117,16 +118,16 @@ const Incidents = () => {
                   <td>{incident.title}</td>
                   <td>
                     <span className={`badge badge-${incident.status}`}>
-                      {incident.status}
+                      {incidentStatusLabel(incident.status)}
                     </span>
                   </td>
                   <td>
                     <span className={`badge badge-${incident.severity}`}>
-                      {incident.severity}
+                      {severityLabel(incident.severity)}
                     </span>
                   </td>
-                  <td>Event #{incident.event_id}</td>
-                  <td>{incident.assigned_to ? `User #${incident.assigned_to}` : 'Не назначен'}</td>
+                  <td>Событие #{incident.event_id}</td>
+                  <td>{incident.assigned_to ? `Пользователь #${incident.assigned_to}` : 'Не назначен'}</td>
                   <td>{new Date(incident.created_at).toLocaleString('ru-RU')}</td>
                   <td>
                     <button

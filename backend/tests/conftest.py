@@ -12,7 +12,7 @@ from app.auth import hash_password
 
 @pytest.fixture(autouse=True)
 def disable_smtp_notifications(monkeypatch):
-    """Keep tests from using real SMTP settings from the host environment."""
+    """Не дает тестам использовать реальные SMTP-настройки окружения."""
     smtp_env_names = [
         "SMTP_HOST",
         "SMTP_PORT",
@@ -28,7 +28,7 @@ def disable_smtp_notifications(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
-# Create in-memory SQLite database for testing
+# Создаем SQLite-базу в памяти для тестов.
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
@@ -41,7 +41,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="function")
 def db():
-    """Create a fresh database for each test."""
+    """Создает свежую базу данных для каждого теста."""
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
     try:
@@ -53,7 +53,7 @@ def db():
 
 @pytest.fixture(scope="function")
 def client(db):
-    """Create a test client with database dependency override."""
+    """Создает тестовый клиент с подменой зависимости базы данных."""
     def override_get_db():
         try:
             yield db
@@ -71,7 +71,7 @@ def client(db):
 
 @pytest.fixture
 def admin_user(db):
-    """Create an admin user for testing."""
+    """Создает администратора для тестов."""
     from app.models import UserRole
     user = User(
         username="admin",
@@ -87,7 +87,7 @@ def admin_user(db):
 
 @pytest.fixture
 def operator_user(db):
-    """Create an operator user for testing."""
+    """Создает оператора для тестов."""
     from app.models import UserRole
     user = User(
         username="operator",
@@ -103,7 +103,7 @@ def operator_user(db):
 
 @pytest.fixture
 def security_engineer_user(db):
-    """Create a security engineer user for testing."""
+    """Создает инженера ИБ для тестов."""
     from app.models import UserRole
     user = User(
         username="engineer",
@@ -119,7 +119,7 @@ def security_engineer_user(db):
 
 @pytest.fixture
 def admin_token(client, admin_user):
-    """Get JWT token for admin user."""
+    """Получает JWT-токен администратора."""
     response = client.post(
         "/api/auth/login",
         json={"username": "admin", "password": "admin123"}
@@ -129,7 +129,7 @@ def admin_token(client, admin_user):
 
 @pytest.fixture
 def operator_token(client, operator_user):
-    """Get JWT token for operator user."""
+    """Получает JWT-токен оператора."""
     response = client.post(
         "/api/auth/login",
         json={"username": "operator", "password": "operator123"}
@@ -139,7 +139,7 @@ def operator_token(client, operator_user):
 
 @pytest.fixture
 def engineer_token(client, security_engineer_user):
-    """Get JWT token for security engineer user."""
+    """Получает JWT-токен инженера ИБ."""
     response = client.post(
         "/api/auth/login",
         json={"username": "engineer", "password": "engineer123"}

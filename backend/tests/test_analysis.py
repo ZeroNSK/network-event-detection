@@ -18,7 +18,7 @@ def analysis_node(db):
         name="EDGE-FW-TEST",
         node_type=NodeType.firewall,
         ip_address="172.16.0.10",
-        location="Test perimeter",
+        location="Тестовый периметр",
         status=NodeStatus.active,
     )
     db.add(node)
@@ -35,7 +35,7 @@ def create_event(client, token, node, **overrides):
         "destination_ip": node.ip_address,
         "protocol": "TCP",
         "event_type": "port_scan",
-        "event_message": "Test network event",
+        "event_message": "Тестовое сетевое событие",
         "severity": "high",
     }
     payload.update(overrides)
@@ -59,7 +59,7 @@ def test_medium_risk_level_for_non_suspicious_event(client, admin_user, admin_to
         name="LTE-eNB-TEST",
         node_type=NodeType.base_station,
         ip_address="10.10.22.10",
-        location="Test radio site",
+        location="Тестовая радиоплощадка",
         status=NodeStatus.active,
     )
     db.add(node)
@@ -91,7 +91,7 @@ def test_correlation_alert_created_for_multiple_auth_failures(client, admin_user
             analysis_node,
             source_ip="203.0.113.15",
             event_type="auth_failed",
-            event_message=f"Auth failure {index}",
+            event_message=f"Ошибка аутентификации {index}",
             severity="medium",
         )
         assert response.status_code == 201
@@ -116,7 +116,7 @@ def test_correlation_alert_created_for_port_scan(client, admin_user, admin_token
             source_ip="198.51.100.77",
             destination_ip=f"172.16.0.{index + 1}",
             event_type="port_scan",
-            event_message=f"Port scan {index}",
+            event_message=f"Сканирование портов {index}",
         )
         assert response.status_code == 201
 
@@ -138,7 +138,7 @@ def test_incident_created_from_alert_only_once(client, admin_user, admin_token, 
         analysis_node,
         source_ip="203.0.113.200",
         event_type="unauthorized_access",
-        event_message="Unauthorized external access",
+        event_message="Несанкционированный внешний доступ",
     )
     event_id = event_response.json()["id"]
     alert = db.query(CorrelationAlert).filter(
@@ -167,8 +167,8 @@ def test_incident_created_from_alert_only_once(client, admin_user, admin_token, 
 
 def test_operator_cannot_delete_alert(client, operator_user, operator_token, db):
     alert = CorrelationAlert(
-        title="Test alert",
-        description="Test alert description",
+        title="Тестовое оповещение",
+        description="Описание тестового оповещения",
         risk_score=75,
         risk_level="high",
         status=AlertStatus.new.value,
@@ -213,7 +213,7 @@ def test_security_engineer_can_run_analysis(client, security_engineer_user, engi
 def test_csv_import_creates_network_events(client, security_engineer_user, engineer_token, db):
     csv_content = (
         "timestamp,node_name,source_ip,destination_ip,protocol,event_type,event_message,severity\n"
-        "2026-05-17T10:00:00,AUTH-RADIUS-CSV,203.0.113.91,10.10.5.5,UDP,auth_failed,CSV auth failure,high\n"
+        "2026-05-17T10:00:00,AUTH-RADIUS-CSV,203.0.113.91,10.10.5.5,UDP,auth_failed,Ошибка аутентификации из CSV,high\n"
     )
 
     response = client.post(

@@ -16,7 +16,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - add JWT token
+// Перехватчик запросов добавляет JWT-токен.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -28,17 +28,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle errors
+// Перехватчик ответов обрабатывает ошибки авторизации.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - remove token and redirect to login
+      // При ошибке авторизации очищаем сессию и возвращаем на страницу входа.
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
     } else if (error.response?.status === 403) {
-      // Forbidden - show notification
+      // При запрете доступа показываем уведомление.
       toast.error('Недостаточно прав для выполнения этой операции');
     }
     return Promise.reject(error);

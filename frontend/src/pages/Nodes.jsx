@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { nodeStatusLabel, nodeTypeLabel } from '../utils/labels'
 
 const Nodes = () => {
   const navigate = useNavigate()
@@ -24,7 +25,7 @@ const Nodes = () => {
     setLoading(true)
     try {
       const params = { page, limit, ...filters }
-      // Remove empty filters
+      // Убираем пустые фильтры перед запросом.
       Object.keys(params).forEach(key => {
         if (params[key] === '') delete params[key]
       })
@@ -80,19 +81,19 @@ const Nodes = () => {
       <div className="filters">
         <select name="node_type" value={filters.node_type} onChange={handleFilterChange}>
           <option value="">Все типы</option>
-          <option value="router">Router</option>
-          <option value="switch">Switch</option>
-          <option value="base_station">Base Station</option>
-          <option value="server">Server</option>
-          <option value="firewall">Firewall</option>
-          <option value="gateway">Gateway</option>
+          <option value="router">Маршрутизатор</option>
+          <option value="switch">Коммутатор</option>
+          <option value="base_station">Базовая станция</option>
+          <option value="server">Сервер</option>
+          <option value="firewall">Межсетевой экран</option>
+          <option value="gateway">Шлюз</option>
         </select>
 
         <select name="status" value={filters.status} onChange={handleFilterChange}>
           <option value="">Все статусы</option>
-          <option value="active">Active</option>
-          <option value="warning">Warning</option>
-          <option value="offline">Offline</option>
+          <option value="active">Активен</option>
+          <option value="warning">Требует внимания</option>
+          <option value="offline">Недоступен</option>
         </select>
       </div>
 
@@ -118,12 +119,12 @@ const Nodes = () => {
                 <tr key={node.id}>
                   <td>{node.id}</td>
                   <td>{node.name}</td>
-                  <td>{node.node_type}</td>
+                  <td>{nodeTypeLabel(node.node_type)}</td>
                   <td>{node.ip_address}</td>
                   <td>{node.location || '-'}</td>
                   <td>
                     <span className={`badge badge-${node.status}`}>
-                      {node.status}
+                      {nodeStatusLabel(node.status)}
                     </span>
                   </td>
                   <td>{new Date(node.created_at).toLocaleString('ru-RU')}</td>

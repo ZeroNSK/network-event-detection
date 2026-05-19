@@ -87,7 +87,7 @@ const Register = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Электронная почта</label>
               <input
                 type="email"
                 id="email"

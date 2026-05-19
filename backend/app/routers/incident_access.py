@@ -8,23 +8,23 @@ from ..schemas import IncidentAccessCreate, IncidentAccessUpdate, IncidentAccess
 from ..dependencies import get_current_user, require_role
 
 
-router = APIRouter(prefix="/incidents", tags=["incident_access"])
+router = APIRouter(prefix="/incidents", tags=["Доступ к инцидентам"])
 
 
 def check_incident_access(incident_id: int, user: Union[User, dict], required_level: AccessLevel, db: Session) -> bool:
     """
-    Check if user has required access level to an incident.
-    Admin always has full access.
+    Проверяет, есть ли у пользователя нужный уровень доступа к инциденту.
+    Администратор всегда имеет полный доступ.
     """
-    # Handle both User object and dict
+    # Поддерживаем и объект User, и словарь из JWT.
     user_id = user.id if hasattr(user, 'id') else user['user_id']
     user_role = user.role.value if hasattr(user, 'role') else user['role']
     
-    # Admin has full access to everything
+    # Администратор имеет полный доступ ко всем данным.
     if user_role == "admin":
         return True
     
-    # Check if user has explicit access grant
+    # Проверяем, выдан ли пользователю явный доступ.
     access = db.query(IncidentAccess).filter(
         IncidentAccess.incident_id == incident_id,
         IncidentAccess.user_id == user_id
@@ -33,7 +33,7 @@ def check_incident_access(incident_id: int, user: Union[User, dict], required_le
     if not access:
         return False
     
-    # Check access level hierarchy: manage > write > read
+    # Проверяем иерархию доступа: manage > write > read.
     access_hierarchy = {
         AccessLevel.read: 1,
         AccessLevel.write: 2,
@@ -49,7 +49,7 @@ async def get_incident_access(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all access grants for an incident. Requires read access."""
+    """Возвращает все выданные доступы к инциденту; требуется доступ на чтение."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Инцидент не найден")
@@ -71,7 +71,7 @@ async def grant_incident_access(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Grant access to an incident. Requires manage access or admin role."""
+    """Выдает доступ к инциденту; требуется управление доступом или роль администратора."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Инцидент не найден")
@@ -126,7 +126,7 @@ async def update_incident_access(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Update access level for an incident. Requires manage access or admin role."""
+    """Изменяет уровень доступа к инциденту; требуется управление доступом или роль администратора."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Инцидент не найден")
@@ -170,7 +170,7 @@ async def revoke_incident_access(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Revoke access to an incident. Requires manage access or admin role."""
+    """Отзывает доступ к инциденту; требуется управление доступом или роль администратора."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Инцидент не найден")

@@ -3,19 +3,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Get database URL from environment variable
+# Получаем URL базы данных из переменной окружения.
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/network_security")
 
-# Create SQLAlchemy engine
+# Создаем подключение SQLAlchemy.
 engine = create_engine(DATABASE_URL)
 
-# Create SessionLocal class
+# Создаем фабрику сессий SessionLocal.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class for models
+# Создаем базовый класс для моделей.
 Base = declarative_base()
 
-# Dependency for getting database session
+# Зависимость для получения сессии базы данных.
 def get_db():
     db = SessionLocal()
     try:

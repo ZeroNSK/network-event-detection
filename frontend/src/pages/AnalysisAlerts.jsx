@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { alertStatusLabel, riskLevelLabel } from '../utils/labels'
 
 const AnalysisAlerts = () => {
   const navigate = useNavigate()
@@ -27,7 +28,7 @@ const AnalysisAlerts = () => {
       setAlerts(response.data.items)
       setTotal(response.data.total)
     } catch (error) {
-      toast.error('Ошибка загрузки correlation alerts')
+      toast.error('Ошибка загрузки корреляционных оповещений')
     } finally {
       setLoading(false)
     }
@@ -53,7 +54,7 @@ const AnalysisAlerts = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>Correlation alerts</h1>
+        <h1>Корреляционные оповещения</h1>
         <button className="btn btn-secondary" onClick={() => navigate('/analysis')}>
           Назад к анализу
         </button>
@@ -62,17 +63,17 @@ const AnalysisAlerts = () => {
       <div className="filters">
         <select name="status" value={filters.status} onChange={handleFilterChange}>
           <option value="">Все статусы</option>
-          <option value="new">New</option>
-          <option value="in_progress">In Progress</option>
-          <option value="resolved">Resolved</option>
-          <option value="false_positive">False Positive</option>
+          <option value="new">Новый</option>
+          <option value="in_progress">В работе</option>
+          <option value="resolved">Решен</option>
+          <option value="false_positive">Ложное срабатывание</option>
         </select>
         <select name="risk_level" value={filters.risk_level} onChange={handleFilterChange}>
           <option value="">Все уровни риска</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
+          <option value="low">Низкий</option>
+          <option value="medium">Средний</option>
+          <option value="high">Высокий</option>
+          <option value="critical">Критический</option>
         </select>
         <input
           name="source_ip"
@@ -91,13 +92,13 @@ const AnalysisAlerts = () => {
               <tr>
                 <th>ID</th>
                 <th>Название</th>
-                <th>Status</th>
-                <th>Risk</th>
-                <th>Risk level</th>
-                <th>Source IP</th>
-                <th>Events</th>
-                <th>First seen</th>
-                <th>Last seen</th>
+                <th>Статус</th>
+                <th>Балл риска</th>
+                <th>Уровень риска</th>
+                <th>IP источника</th>
+                <th>События</th>
+                <th>Первое событие</th>
+                <th>Последнее событие</th>
                 <th>Действия</th>
               </tr>
             </thead>
@@ -106,10 +107,10 @@ const AnalysisAlerts = () => {
                 <tr key={alert.id}>
                   <td>{alert.id}</td>
                   <td>{alert.title}</td>
-                  <td><span className={`badge badge-${alert.status}`}>{alert.status}</span></td>
+                  <td><span className={`badge badge-${alert.status}`}>{alertStatusLabel(alert.status)}</span></td>
                   <td>{alert.risk_score}</td>
-                  <td><span className={`badge badge-${alert.risk_level}`}>{alert.risk_level}</span></td>
-                  <td>{alert.source_ip || 'N/A'}</td>
+                  <td><span className={`badge badge-${alert.risk_level}`}>{riskLevelLabel(alert.risk_level)}</span></td>
+                  <td>{alert.source_ip || 'Нет данных'}</td>
                   <td>{alert.event_count}</td>
                   <td>{new Date(alert.first_seen).toLocaleString('ru-RU')}</td>
                   <td>{new Date(alert.last_seen).toLocaleString('ru-RU')}</td>

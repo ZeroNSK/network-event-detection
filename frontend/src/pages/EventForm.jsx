@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { ruleNameLabel } from '../utils/labels'
 
 const EventForm = () => {
   const navigate = useNavigate()
@@ -130,7 +131,7 @@ const EventForm = () => {
             <option value="">Без правила</option>
             {rules.map(rule => (
               <option key={rule.id} value={rule.id}>
-                {rule.name}
+                {ruleNameLabel(rule.name)}
               </option>
             ))}
           </select>
@@ -177,7 +178,7 @@ const EventForm = () => {
             <option value="HTTP">HTTP</option>
             <option value="HTTPS">HTTPS</option>
             <option value="SSH">SSH</option>
-            <option value="OTHER">OTHER</option>
+            <option value="OTHER">Другой</option>
           </select>
         </div>
 
@@ -190,14 +191,14 @@ const EventForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="auth_failed">Auth Failed</option>
-            <option value="port_scan">Port Scan</option>
-            <option value="traffic_spike">Traffic Spike</option>
-            <option value="unauthorized_access">Unauthorized Access</option>
-            <option value="config_change">Config Change</option>
-            <option value="connection_drop">Connection Drop</option>
-            <option value="suspicious_ip">Suspicious IP</option>
-            <option value="other">Other</option>
+            <option value="auth_failed">Ошибка аутентификации</option>
+            <option value="port_scan">Сканирование портов</option>
+            <option value="traffic_spike">Всплеск трафика</option>
+            <option value="unauthorized_access">Несанкционированный доступ</option>
+            <option value="config_change">Изменение конфигурации</option>
+            <option value="connection_drop">Потеря соединения</option>
+            <option value="suspicious_ip">Подозрительный IP</option>
+            <option value="other">Другое событие</option>
           </select>
         </div>
 
@@ -223,10 +224,10 @@ const EventForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="critical">Критический</option>
           </select>
         </div>
 

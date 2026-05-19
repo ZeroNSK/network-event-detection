@@ -7,11 +7,11 @@ from ..models import EventAccess, NetworkEvent, User, AuditLog, AuditAction, Ent
 from ..schemas import EventAccessCreate, EventAccessUpdate, EventAccessResponse
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/events/{event_id}/access", tags=["Event Access"])
+router = APIRouter(prefix="/events/{event_id}/access", tags=["Доступ к событиям"])
 
 
 def check_event_manage_access(event_id: int, user_dict: dict, db: Session) -> bool:
-    """Check if user can manage access for an event (admin or has manage level)"""
+    """Проверяет, может ли пользователь управлять доступом к событию."""
     if user_dict["role"] == "admin":
         return True
     

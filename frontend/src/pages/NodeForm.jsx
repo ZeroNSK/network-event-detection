@@ -88,12 +88,12 @@ const NodeForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="router">Router</option>
-            <option value="switch">Switch</option>
-            <option value="base_station">Base Station</option>
-            <option value="server">Server</option>
-            <option value="firewall">Firewall</option>
-            <option value="gateway">Gateway</option>
+            <option value="router">Маршрутизатор</option>
+            <option value="switch">Коммутатор</option>
+            <option value="base_station">Базовая станция</option>
+            <option value="server">Сервер</option>
+            <option value="firewall">Межсетевой экран</option>
+            <option value="gateway">Шлюз</option>
           </select>
         </div>
 
@@ -118,7 +118,7 @@ const NodeForm = () => {
             name="location"
             value={formData.location}
             onChange={handleChange}
-            placeholder="Data Center A"
+            placeholder="Москва, центр обработки данных"
           />
         </div>
 
@@ -131,9 +131,9 @@ const NodeForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="active">Active</option>
-            <option value="warning">Warning</option>
-            <option value="offline">Offline</option>
+            <option value="active">Активен</option>
+            <option value="warning">Требует внимания</option>
+            <option value="offline">Недоступен</option>
           </select>
         </div>
 

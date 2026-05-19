@@ -7,8 +7,9 @@ from ..models import Incident, NetworkEvent, User, AuditLog, AuditAction, Entity
 from ..schemas import IncidentCreate, IncidentUpdate, IncidentResponse, PaginatedResponse
 from ..dependencies import get_current_user, require_role
 from ..email_notifications import notify_dangerous_incident_created
+from ..access_control import can_read_event, can_read_incident, readable_incidents_query
 
-router = APIRouter(prefix="/incidents", tags=["Incidents"])
+router = APIRouter(prefix="/incidents", tags=["Инциденты"])
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -21,35 +22,31 @@ async def get_incidents(
     db: Session = Depends(get_db)
 ):
     """
-    Get paginated list of incidents with optional filters.
+    Возвращает список инцидентов с пагинацией и дополнительными фильтрами.
     
     - **page**: Page number (default: 1)
     - **limit**: Items per page (default: 10, max: 100)
     - **status**: Filter by incident status (optional)
     - **severity**: Filter by severity level (optional)
     
-    Note: Operators can only see their own incidents.
+    Note: operators can only see incidents they created, were assigned to, or were granted access to.
     """
-    query = db.query(Incident)
+    query = readable_incidents_query(db, current_user)
     
-    # Operators can only see their own incidents
-    if current_user["role"] == "operator":
-        query = query.filter(Incident.created_by == current_user["user_id"])
-    
-    # Apply filters
+    # Применяем фильтры.
     if status_filter:
         query = query.filter(Incident.status == status_filter)
     if severity:
         query = query.filter(Incident.severity == severity)
     
-    # Get total count
+    # Получаем общее количество.
     total = query.count()
     
-    # Apply pagination
+    # Применяем пагинацию.
     offset = (page - 1) * limit
     incidents = query.order_by(Incident.created_at.desc()).offset(offset).limit(limit).all()
     
-    # Convert to response models
+    # Преобразуем данные в модели ответа.
     items = [IncidentResponse.model_validate(incident) for incident in incidents]
     
     return {
@@ -68,20 +65,19 @@ async def get_incident(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get a single incident by ID with related event data."""
+    """Возвращает один инцидент по ID вместе со связанным событием."""
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     
     if not incident:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Incident not found"
+            detail="Инцидент не найден"
         )
     
-    # Operators can only see their own incidents
-    if current_user["role"] == "operator" and incident.created_by != current_user["user_id"]:
+    if not can_read_incident(db, incident, current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions"
+            detail="Недостаточно прав"
         )
 
     return IncidentResponse.model_validate(incident)
@@ -94,7 +90,7 @@ async def create_incident(
     db: Session = Depends(get_db)
 ):
     """
-    Create a new incident based on a network event.
+    Создает новый инцидент на основе сетевого события.
     
     - **title**: Incident title
     - **description**: Incident description
@@ -102,24 +98,29 @@ async def create_incident(
     - **event_id**: ID of the related network event
     - **assigned_to**: ID of user to assign incident to (optional)
     """
-    # Verify event exists
+    # Проверяем, что событие существует.
     event = db.query(NetworkEvent).filter(NetworkEvent.id == incident_data.event_id).first()
     if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network event not found"
+            detail="Сетевое событие не найдено"
+        )
+    if not can_read_event(db, event, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав на связанное событие"
         )
     
-    # Verify assigned_to user exists if provided
+    # Проверяем назначенного пользователя, если он указан.
     if incident_data.assigned_to:
         assignee = db.query(User).filter(User.id == incident_data.assigned_to).first()
         if not assignee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assigned user not found"
+                detail="Назначенный пользователь не найден"
             )
     
-    # Create incident
+    # Создаем инцидент.
     new_incident = Incident(
         title=incident_data.title,
         description=incident_data.description,
@@ -133,7 +134,7 @@ async def create_incident(
     db.commit()
     db.refresh(new_incident)
     
-    # Create audit log
+    # Создаем запись аудита.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.create,
@@ -163,10 +164,10 @@ async def update_incident(
     if not incident:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Incident not found"
+            detail="Инцидент не найден"
         )
     
-    # Update fields
+    # Обновляем поля.
     update_data = incident_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(incident, field, value)
@@ -174,7 +175,7 @@ async def update_incident(
     db.commit()
     db.refresh(incident)
     
-    # Create audit log
+    # Создаем запись аудита.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.update,
@@ -199,10 +200,10 @@ async def delete_incident(
     if not incident:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Incident not found"
+            detail="Инцидент не найден"
         )
     
-    # Create audit log before deletion
+    # Создаем запись аудита перед удалением.
     audit_log = AuditLog(
         user_id=current_user["user_id"],
         action=AuditAction.delete,

@@ -10,8 +10,9 @@ from ..models import (
 from ..schemas import NetworkEventCreate, NetworkEventUpdate, NetworkEventResponse, PaginatedResponse
 from ..dependencies import get_current_user, require_role
 from ..analysis import analyze_and_correlate_event
+from ..access_control import can_read_event, readable_events_query
 
-router = APIRouter(prefix="/events", tags=["Network Events"])
+router = APIRouter(prefix="/events", tags=["Сетевые события"])
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -29,7 +30,7 @@ async def get_events(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    query = db.query(NetworkEvent)
+    query = readable_events_query(db, current_user)
     
     if severity:
         query = query.filter(NetworkEvent.severity == severity)
@@ -74,7 +75,12 @@ async def get_event(
     if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network event not found"
+            detail="Сетевое событие не найдено"
+        )
+    if not can_read_event(db, event, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав"
         )
     
     return event
@@ -90,7 +96,7 @@ async def create_event(
     if not node:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network node not found"
+            detail="Сетевой узел не найден"
         )
     
     if event_data.rule_id:
@@ -98,7 +104,7 @@ async def create_event(
         if not rule:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Detection rule not found"
+                detail="Правило обнаружения не найдено"
             )
     
     new_event = NetworkEvent(
@@ -143,7 +149,7 @@ async def update_event(
     if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network event not found"
+            detail="Сетевое событие не найдено"
         )
     
     update_data = event_data.model_dump(exclude_unset=True)
@@ -152,14 +158,14 @@ async def update_event(
         if not node:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Network node not found"
+                detail="Сетевой узел не найден"
             )
     if update_data.get("rule_id"):
         rule = db.query(DetectionRule).filter(DetectionRule.id == update_data["rule_id"]).first()
         if not rule:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Detection rule not found"
+                detail="Правило обнаружения не найдено"
             )
 
     for field, value in update_data.items():
@@ -193,7 +199,7 @@ async def delete_event(
     if not event:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Network event not found"
+            detail="Сетевое событие не найдено"
         )
     
     audit_log = AuditLog(

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { eventTypeLabel, roleLabel } from '../utils/labels'
 
 const IncidentForm = () => {
   const navigate = useNavigate()
@@ -23,7 +24,7 @@ const IncidentForm = () => {
 
   const fetchEventsAndUsers = async () => {
     try {
-      // Fetch suspicious events and all users
+      // Загружаем подозрительные события и список пользователей.
       const [eventsRes, usersRes] = await Promise.all([
         api.get('/events?is_suspicious=true&limit=100'),
         api.get('/auth/users?limit=100').catch(() => ({ data: { items: [] } }))
@@ -104,10 +105,10 @@ const IncidentForm = () => {
             onChange={handleChange}
             required
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="critical">Критический</option>
           </select>
         </div>
 
@@ -123,7 +124,7 @@ const IncidentForm = () => {
             <option value="">Выберите подозрительное событие</option>
             {events.map(event => (
               <option key={event.id} value={event.id}>
-                #{event.id} - {event.event_type} ({event.source_ip} → {event.destination_ip})
+                #{event.id} - {eventTypeLabel(event.event_type)} ({event.source_ip} → {event.destination_ip})
               </option>
             ))}
           </select>
@@ -140,7 +141,7 @@ const IncidentForm = () => {
             <option value="">Не назначен</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>
-                {user.username} ({user.role})
+                {user.username} ({roleLabel(user.role)})
               </option>
             ))}
           </select>

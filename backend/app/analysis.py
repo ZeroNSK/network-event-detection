@@ -36,6 +36,17 @@ EVENT_TYPE_WEIGHTS = {
     "connection_drop": 10,
 }
 
+EVENT_TYPE_LABELS = {
+    "auth_failed": "ошибка аутентификации",
+    "port_scan": "сканирование портов",
+    "traffic_spike": "всплеск трафика",
+    "unauthorized_access": "несанкционированный доступ",
+    "suspicious_ip": "подозрительный IP",
+    "config_change": "изменение конфигурации",
+    "connection_drop": "потеря соединения",
+    "other": "другое событие",
+}
+
 PROTOCOL_WEIGHTS = {
     "SSH": 10,
     "TCP": 5,
@@ -49,6 +60,15 @@ NODE_TYPE_WEIGHTS = {
     "server": 10,
     "router": 10,
     "base_station": 5,
+}
+
+NODE_TYPE_LABELS = {
+    "firewall": "межсетевой экран",
+    "gateway": "шлюз",
+    "server": "сервер",
+    "router": "маршрутизатор",
+    "base_station": "базовая станция",
+    "switch": "коммутатор",
 }
 
 RISK_LABELS = {
@@ -101,7 +121,7 @@ def calculate_event_risk(db: Session, event: NetworkEvent, node: NetworkNode | N
     event_type_weight = EVENT_TYPE_WEIGHTS.get(event_type, 0)
     if event_type_weight:
         score += event_type_weight
-        reasons.append(f"тип события {event_type}")
+        reasons.append(f"тип события: {EVENT_TYPE_LABELS.get(event_type, event_type)}")
 
     protocol_weight = PROTOCOL_WEIGHTS.get(protocol, 5)
     score += protocol_weight
@@ -114,7 +134,7 @@ def calculate_event_risk(db: Session, event: NetworkEvent, node: NetworkNode | N
     node_type_weight = NODE_TYPE_WEIGHTS.get(node_type, 0)
     if node_type_weight:
         score += node_type_weight
-        reasons.append(f"целевой узел {node_type}")
+        reasons.append(f"целевой узел: {NODE_TYPE_LABELS.get(node_type, node_type)}")
 
     matching_rules = (
         db.query(DetectionRule)
@@ -206,7 +226,7 @@ def _create_or_update_alert(
 ) -> tuple[CorrelationAlert, bool]:
     event_list = list(events)
     if not event_list:
-        raise ValueError("Correlation alert requires at least one event")
+        raise ValueError("Для корреляционного оповещения требуется хотя бы одно событие")
 
     first_seen = min(_event_time(event) for event in event_list)
     last_seen = max(_event_time(event) for event in event_list)

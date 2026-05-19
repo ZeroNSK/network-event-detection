@@ -1,5 +1,5 @@
 """
-Tests for network nodes endpoints.
+Тесты endpoints сетевых узлов.
 Requirements: 16.9, 16.10
 """
 import pytest
@@ -7,7 +7,7 @@ import pytest
 
 def test_operator_cannot_create_node(client, operator_user, operator_token):
     """
-    Test that an operator attempting to create a network node returns 403.
+    Проверяет, что оператор получает 403 при попытке создать сетевой узел.
     Requirements: 16.9
     """
     response = client.post(
@@ -17,7 +17,7 @@ def test_operator_cannot_create_node(client, operator_user, operator_token):
             "name": "Test-Node",
             "node_type": "router",
             "ip_address": "10.0.0.1",
-            "location": "Test Location",
+            "location": "Тестовая локация",
             "status": "active"
         }
     )
@@ -28,7 +28,7 @@ def test_operator_cannot_create_node(client, operator_user, operator_token):
 
 def test_admin_can_create_node(client, admin_user, admin_token):
     """
-    Test that an admin can successfully create a network node.
+    Проверяет, что администратор может создать сетевой узел.
     Requirements: 16.10
     """
     response = client.post(
@@ -38,7 +38,7 @@ def test_admin_can_create_node(client, admin_user, admin_token):
             "name": "Test-Node",
             "node_type": "router",
             "ip_address": "10.0.0.1",
-            "location": "Test Location",
+            "location": "Тестовая локация",
             "status": "active"
         }
     )
@@ -51,24 +51,43 @@ def test_admin_can_create_node(client, admin_user, admin_token):
     assert data["status"] == "active"
 
 
+def test_create_node_rejects_invalid_ip_and_type(client, admin_user, admin_token):
+    """
+    Проверяет валидацию типа узла и IP-адреса.
+    """
+    response = client.post(
+        "/api/nodes",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "name": "Bad-Node",
+            "node_type": "satellite",
+            "ip_address": "999.999.999.999",
+            "location": "Тестовая локация",
+            "status": "active",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_security_engineer_cannot_delete_node(client, admin_user, admin_token, security_engineer_user, engineer_token, db):
     """
-    Test that a security engineer cannot delete a network node.
+    Проверяет, что инженер ИБ не может удалить сетевой узел.
     """
-    # First create a node as admin
+    # Сначала создаем узел от имени администратора.
     from app.models import NetworkNode, NodeType, NodeStatus
     node = NetworkNode(
         name="Test-Node",
         node_type=NodeType.router,
         ip_address="10.0.0.1",
-        location="Test Location",
+        location="Тестовая локация",
         status=NodeStatus.active
     )
     db.add(node)
     db.commit()
     db.refresh(node)
     
-    # Try to delete as security engineer
+    # Пытаемся удалить узел от имени инженера ИБ.
     response = client.delete(
         f"/api/nodes/{node.id}",
         headers={"Authorization": f"Bearer {engineer_token}"}
@@ -79,15 +98,15 @@ def test_security_engineer_cannot_delete_node(client, admin_user, admin_token, s
 
 def test_admin_can_delete_node(client, admin_user, admin_token, db):
     """
-    Test that an admin can successfully delete a network node.
+    Проверяет, что администратор может удалить сетевой узел.
     """
-    # First create a node
+    # Сначала создаем узел.
     from app.models import NetworkNode, NodeType, NodeStatus
     node = NetworkNode(
         name="Test-Node",
         node_type=NodeType.router,
         ip_address="10.0.0.1",
-        location="Test Location",
+        location="Тестовая локация",
         status=NodeStatus.active
     )
     db.add(node)
@@ -95,7 +114,7 @@ def test_admin_can_delete_node(client, admin_user, admin_token, db):
     db.refresh(node)
     node_id = node.id
     
-    # Delete as admin
+    # Удаляем от имени администратора.
     response = client.delete(
         f"/api/nodes/{node_id}",
         headers={"Authorization": f"Bearer {admin_token}"}
@@ -103,6 +122,6 @@ def test_admin_can_delete_node(client, admin_user, admin_token, db):
     
     assert response.status_code == 204
     
-    # Verify node is deleted
+    # Проверяем, что узел удален.
     deleted_node = db.query(NetworkNode).filter(NetworkNode.id == node_id).first()
     assert deleted_node is None

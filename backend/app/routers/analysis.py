@@ -22,7 +22,7 @@ from ..schemas import (
 )
 from ..dependencies import require_role
 
-router = APIRouter(prefix="/analysis", tags=["Analysis"])
+router = APIRouter(prefix="/analysis", tags=["Анализ"])
 
 
 @router.post("/run", response_model=AnalysisRunResponse)
@@ -80,7 +80,7 @@ async def get_alert(
 ):
     alert = db.query(CorrelationAlert).filter(CorrelationAlert.id == alert_id).first()
     if not alert:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Correlation alert not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Корреляционное оповещение не найдено")
     return alert
 
 
@@ -93,11 +93,11 @@ async def update_alert(
 ):
     alert = db.query(CorrelationAlert).filter(CorrelationAlert.id == alert_id).first()
     if not alert:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Correlation alert not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Корреляционное оповещение не найдено")
 
     allowed_statuses = {status_item.value for status_item in AlertStatus}
     if alert_data.status not in allowed_statuses:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid alert status")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Недопустимый статус оповещения")
 
     alert.status = alert_data.status
     log_action(
@@ -120,7 +120,7 @@ async def delete_alert(
 ):
     alert = db.query(CorrelationAlert).filter(CorrelationAlert.id == alert_id).first()
     if not alert:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Correlation alert not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Корреляционное оповещение не найдено")
 
     for incident in alert.incidents:
         incident.correlation_alert_id = None
@@ -145,7 +145,7 @@ async def create_incident_from_alert(
 ):
     alert = db.query(CorrelationAlert).filter(CorrelationAlert.id == alert_id).first()
     if not alert:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Correlation alert not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Корреляционное оповещение не найдено")
 
     existing_incident = (
         db.query(Incident).filter(Incident.correlation_alert_id == alert.id).first()
@@ -157,7 +157,7 @@ async def create_incident_from_alert(
     if not first_event:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Correlation alert has no related events",
+            detail="У корреляционного оповещения нет связанных событий",
         )
 
     incident = Incident(

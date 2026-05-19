@@ -7,11 +7,11 @@ from ..models import NodeAccess, NetworkNode, User, AuditLog, AuditAction, Entit
 from ..schemas import NodeAccessCreate, NodeAccessUpdate, NodeAccessResponse
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/nodes/{node_id}/access", tags=["Node Access"])
+router = APIRouter(prefix="/nodes/{node_id}/access", tags=["Доступ к узлам"])
 
 
 def check_node_manage_access(node_id: int, user_dict: dict, db: Session) -> bool:
-    """Check if user can manage access for a node (admin or has manage level)"""
+    """Проверяет, может ли пользователь управлять доступом к узлу."""
     if user_dict["role"] == "admin":
         return True
     

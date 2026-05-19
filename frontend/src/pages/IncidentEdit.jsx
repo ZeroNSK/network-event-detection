@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import api from '../api/axios'
+import { roleLabel } from '../utils/labels'
 
 const IncidentEdit = () => {
   const navigate = useNavigate()
@@ -109,10 +110,10 @@ const IncidentEdit = () => {
             onChange={handleChange}
             required
           >
-            <option value="new">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="rejected">Rejected</option>
+            <option value="new">Новый</option>
+            <option value="in_progress">В работе</option>
+            <option value="resolved">Решен</option>
+            <option value="rejected">Отклонен</option>
           </select>
         </div>
 
@@ -125,10 +126,10 @@ const IncidentEdit = () => {
             onChange={handleChange}
             required
           >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="critical">Critical</option>
+            <option value="low">Низкий</option>
+            <option value="medium">Средний</option>
+            <option value="high">Высокий</option>
+            <option value="critical">Критический</option>
           </select>
         </div>
 
@@ -143,7 +144,7 @@ const IncidentEdit = () => {
             <option value="">Не назначен</option>
             {users.map(user => (
               <option key={user.id} value={user.id}>
-                {user.username} ({user.role})
+                {user.username} ({roleLabel(user.role)})
               </option>
             ))}
           </select>

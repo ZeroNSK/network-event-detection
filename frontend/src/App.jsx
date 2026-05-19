@@ -19,6 +19,7 @@ import AnalysisAlerts from './pages/AnalysisAlerts'
 import AnalysisAlertDetails from './pages/AnalysisAlertDetails'
 import Analytics from './pages/Analytics'
 import Dataset from './pages/Dataset'
+import Users from './pages/Users'
 import ErrorPage from './pages/ErrorPage'
 import ProtectedRoute from './routes/ProtectedRoute'
 
@@ -57,6 +58,7 @@ function App() {
           <Route path="/analysis/alerts/:id" element={<AnalysisAlertDetails />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/dataset" element={<Dataset />} />
+          <Route path="/users" element={<Users />} />
           
           <Route path="/logs" element={<Logs />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
