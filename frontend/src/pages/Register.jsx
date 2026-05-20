@@ -24,7 +24,9 @@ const Register = () => {
     setLoading(true)
 
     try {
-      await api.post('/auth/register', formData)
+      await api.post('/auth/register', formData, {
+        skipGlobalErrorPage: true,
+      })
       toast.success('Регистрация успешна! Войдите в систему')
       navigate('/login')
     } catch (error) {

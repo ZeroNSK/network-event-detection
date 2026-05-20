@@ -39,6 +39,7 @@ const Login = () => {
     try {
       const response = await api.get('/auth/login-lockout', {
         params: { username: normalized },
+        skipGlobalErrorPage: true,
       })
       const { locked, retry_after_seconds: retryAfter } = response.data
       setLockoutSeconds(locked ? retryAfter : 0)
@@ -85,7 +86,9 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await api.post('/auth/login', formData)
+      const response = await api.post('/auth/login', formData, {
+        skipGlobalErrorPage: true,
+      })
       const { access_token, user } = response.data
       
       localStorage.setItem('token', access_token)

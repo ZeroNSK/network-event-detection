@@ -1,132 +1,131 @@
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+
+const parseStatusCode = (value) => {
+  const parsed = Number.parseInt(value, 10)
+  return Number.isNaN(parsed) ? 500 : parsed
+}
 
 const ErrorPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  
-  // Получаем информацию об ошибке из состояния страницы или параметров запроса.
-  const statusFromState = location.state?.error?.status
-  const messageFromState = location.state?.error?.message
-  
-  const statusFromQuery = searchParams.get('status')
-  const messageFromQuery = searchParams.get('message')
-  
-  const statusCode = statusFromState || parseInt(statusFromQuery) || 500
-  const message = messageFromState || messageFromQuery || 'Произошла ошибка'
-  const from = location.state?.from || '/dashboard'
-  
+
+  const statusCode = location.state?.error?.status || parseStatusCode(searchParams.get('status'))
+  const message = location.state?.error?.message || searchParams.get('message') || 'Произошла ошибка'
+  const errorCode = location.state?.error?.code || searchParams.get('code')
+  const from = location.state?.from || searchParams.get('from') || '/dashboard'
+
   const getErrorTitle = (code) => {
     switch (code) {
       case 400:
         return 'Неверный запрос'
       case 401:
-        return 'Не авторизован'
+        return 'Требуется вход'
       case 403:
         return 'Доступ запрещен'
       case 404:
-        return 'Не найдено'
+        return 'Ресурс не найден'
       case 409:
         return 'Конфликт данных'
+      case 422:
+        return 'Ошибка валидации'
+      case 429:
+        return 'Слишком много запросов'
       case 500:
         return 'Ошибка сервера'
+      case 503:
+        return 'Сервис недоступен'
       default:
         return 'Ошибка'
     }
   }
-  
+
   const getErrorDescription = (code) => {
     switch (code) {
       case 400:
-        return 'Запрос содержит неверные данные'
+        return 'Сервер отклонил запрос из-за некорректных данных.'
       case 401:
-        return 'Необходима авторизация для доступа к этой странице'
+        return 'Сессия истекла или пользователь не авторизован.'
       case 403:
-        return 'У вас недостаточно прав для выполнения этого действия'
+        return 'У текущей роли нет прав на это действие или раздел.'
       case 404:
-        return 'Запрашиваемый ресурс не найден'
+        return 'Запрошенный объект или маршрут не найден.'
       case 409:
-        return 'Данные конфликтуют с существующими записями'
+        return 'Действие конфликтует с уже существующими данными.'
+      case 422:
+        return 'Проверьте заполненные поля и повторите действие.'
+      case 429:
+        return 'Сработало ограничение частоты запросов.'
       case 500:
-        return 'Внутренняя ошибка сервера'
+        return 'На стороне сервера произошла внутренняя ошибка.'
+      case 503:
+        return 'Сервер временно недоступен или соединение прервано.'
       default:
-        return 'Произошла непредвиденная ошибка'
+        return 'Произошла непредвиденная ошибка.'
     }
   }
-  
+
+  const goToDashboard = () => {
+    navigate('/dashboard', { replace: true })
+  }
+
+  const goToLogin = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    navigate('/login', { replace: true })
+  }
+
+  const retrySourcePage = () => {
+    window.location.assign(from)
+  }
+
   return (
-    <div className="page-container" style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      minHeight: '60vh',
-      textAlign: 'center'
-    }}>
-      <div style={{ 
-        maxWidth: '600px', 
-        padding: '40px',
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <h1 style={{ 
-          fontSize: '72px', 
-          margin: '0 0 20px 0',
-          color: '#dc3545'
-        }}>
-          {statusCode}
-        </h1>
-        
-        <h2 style={{ 
-          fontSize: '32px', 
-          margin: '0 0 20px 0',
-          color: '#333'
-        }}>
-          {getErrorTitle(statusCode)}
-        </h2>
-        
-        <p style={{ 
-          fontSize: '18px', 
-          margin: '0 0 10px 0',
-          color: '#666'
-        }}>
-          {getErrorDescription(statusCode)}
-        </p>
-        
+    <main className="error-page" role="alert" aria-live="assertive">
+      <section className="error-panel">
+        <p className="error-eyebrow">Системное сообщение</p>
+
+        <div className="error-code">{statusCode}</div>
+
+        <h1>{getErrorTitle(statusCode)}</h1>
+        <p className="error-description">{getErrorDescription(statusCode)}</p>
+
         {message && message !== getErrorDescription(statusCode) && (
-          <p style={{ 
-            fontSize: '16px', 
-            margin: '20px 0',
-            padding: '15px',
-            backgroundColor: '#fff',
-            borderRadius: '4px',
-            color: '#555',
-            fontStyle: 'italic'
-          }}>
-            {message}
-          </p>
+          <div className="error-details">
+            <span>Детали</span>
+            <p>{message}</p>
+          </div>
         )}
-        
-        <div style={{ marginTop: '30px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button 
-            className="btn btn-primary"
-            onClick={() => navigate(-1)}
-            style={{ minWidth: '120px' }}
-          >
-            ← Назад
+
+        <dl className="error-meta">
+          <div>
+            <dt>Маршрут</dt>
+            <dd>{from}</dd>
+          </div>
+          {errorCode && (
+            <div>
+              <dt>Код API</dt>
+              <dd>{errorCode}</dd>
+            </div>
+          )}
+        </dl>
+
+        <div className="error-actions">
+          <button className="btn btn-primary" onClick={goToDashboard}>
+            На панель
           </button>
-          
-          <button 
-            className="btn btn-secondary"
-            onClick={() => navigate('/dashboard')}
-            style={{ minWidth: '120px' }}
-          >
-            На главную
+
+          <button className="btn btn-secondary" onClick={retrySourcePage}>
+            Повторить
           </button>
+
+          {statusCode === 401 || statusCode === 403 ? (
+            <button className="btn btn-danger" onClick={goToLogin}>
+              Войти другим пользователем
+            </button>
+          ) : null}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }
 

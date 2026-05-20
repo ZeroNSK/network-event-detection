@@ -644,6 +644,104 @@ table th {
   font-size: 20px;
 }
 
+/* Полноэкранная страница ошибок */
+.error-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background:
+    linear-gradient(90deg, rgba(185, 28, 28, 0.055) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 118, 110, 0.055) 1px, transparent 1px),
+    #eef2f5;
+  background-size: 46px 46px;
+}
+
+.error-panel {
+  width: min(720px, 100%);
+  padding: 42px;
+  border: 1px solid var(--color-border);
+  border-left: 6px solid var(--color-danger);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 22px 60px rgba(22, 35, 49, 0.16);
+}
+
+.error-eyebrow {
+  margin-bottom: 12px;
+  color: var(--color-danger);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.error-code {
+  color: var(--color-danger);
+  font-size: 112px;
+  font-weight: 900;
+  line-height: 0.9;
+}
+
+.error-panel h1 {
+  margin: 18px 0 12px;
+  color: var(--color-text);
+  font-size: 38px;
+  line-height: 1.08;
+}
+
+.error-description {
+  color: var(--color-muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.error-details {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  background: #fff7f7;
+}
+
+.error-details span,
+.error-meta dt {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.error-details p {
+  margin-top: 8px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.error-meta {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.error-meta div {
+  min-width: 0;
+}
+
+.error-meta dd {
+  margin-top: 4px;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
 /* Страницы авторизации */
 .auth-container {
   max-width: none;
@@ -1312,6 +1410,27 @@ table th {
 
   .auth-card {
     padding: 30px 24px;
+  }
+
+  .error-page {
+    padding: 18px;
+    align-items: stretch;
+  }
+
+  .error-panel {
+    padding: 28px 22px;
+  }
+
+  .error-code {
+    font-size: 76px;
+  }
+
+  .error-panel h1 {
+    font-size: 28px;
+  }
+
+  .error-actions .btn {
+    width: 100%;
   }
 
   .detail-row {
