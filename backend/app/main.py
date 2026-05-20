@@ -2,14 +2,23 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
+from pathlib import Path
 
 from .database import engine, Base
 from .routers import auth, nodes, events, rules, incidents, logs, incident_access, event_access, node_access, rule_access, analysis, analytics, dataset
 from .seed import seed_database
 from .schema_migrations import ensure_runtime_schema
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+FRONTEND_DIST_DIR = Path(
+    os.getenv("FRONTEND_DIST_DIR", PROJECT_ROOT / "frontend" / "dist")
+)
+FRONTEND_INDEX = FRONTEND_DIST_DIR / "index.html"
 
 
 @asynccontextmanager
@@ -119,10 +128,24 @@ app.include_router(analysis.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(dataset.router, prefix="/api")
 
+if (FRONTEND_DIST_DIR / "assets").exists():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=FRONTEND_DIST_DIR / "assets"),
+        name="frontend-assets",
+    )
+
+
+def frontend_build_available() -> bool:
+    return FRONTEND_INDEX.exists()
+
 
 @app.get("/")
 async def root():
     """Root endpoint."""
+    if frontend_build_available():
+        return FileResponse(FRONTEND_INDEX)
+
     return {
         "message": "API системы мониторинга сетевой безопасности",
         "version": "1.0.0",
@@ -134,3 +157,15 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend(full_path: str):
+    if not frontend_build_available():
+        raise HTTPException(status_code=404, detail="Frontend build not found")
+
+    requested_file = FRONTEND_DIST_DIR / full_path
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+
+    return FileResponse(FRONTEND_INDEX)

@@ -208,6 +208,18 @@ docker compose down -v
 docker compose up --build
 ```
 
+## Бесплатный деплой на Render
+
+Проект подготовлен для Render Blueprint: один Docker web service отдаёт FastAPI API и собранный React frontend с одного домена, а PostgreSQL создаётся автоматически.
+
+1. Запушьте репозиторий на GitHub.
+2. Откройте Render Dashboard и выберите `New` -> `Blueprint`.
+3. Подключите репозиторий и выберите ветку с файлом `render.yaml`.
+4. Нажмите `Deploy Blueprint`.
+5. После сборки откройте публичный URL сервиса `rgr-security-platform`.
+
+Render Free web service может засыпать после 15 минут без запросов, поэтому первый вход иногда занимает около минуты. Free PostgreSQL на Render рассчитан на демонстрации и истекает через 30 дней.
+
 ## Проверка работы
 
 1. Откройте `http://localhost:3001`.

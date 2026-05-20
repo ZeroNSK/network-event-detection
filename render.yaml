@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: rgr-security-platform
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rgr-security-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: SMTP_FROM_EMAIL
+        value: alerts@telecom.local
+      - key: SMTP_TO_EMAILS
+        value: security@telecom.local
+
+databases:
+  - name: rgr-security-db
+    plan: free
+    databaseName: network_security
+    user: network_security
+    postgresMajorVersion: "15"
+    ipAllowList: []
